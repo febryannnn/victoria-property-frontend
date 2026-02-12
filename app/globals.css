@@ -1,26 +1,364 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
+/* ===============================
+   Victoria Property – Tailwind v4
+   Complete Design System
+   =============================== */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Background & Foreground */
+  --background: 210 25% 97%;
+  --foreground: 210 29% 15%;
+
+  /* Card */
+  --card: 60 20% 99%;
+  --card-foreground: 210 29% 15%;
+
+  /* Popover */
+  --popover: 60 20% 99%;
+  --popover-foreground: 210 29% 15%;
+
+  /* Primary - Dark Blue/Grey #374957 */
+  --primary: 207 23% 28%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Secondary - Muted Red #9B4040 */
+  --secondary: 0 42% 43%;
+  --secondary-foreground: 0 0% 100%;
+
+  /* Muted */
+  --muted: 210 20% 96%;
+  --muted-foreground: 207 23% 35%;
+
+  /* Accent Red #A21C1C */
+  --accent: 0 70% 37%;
+  --accent-foreground: 0 0% 100%;
+
+  /* Warning/Yellow #EEBA0B */
+  --warning: 45 92% 49%;
+  --warning-foreground: 210 29% 15%;
+
+  /* Destructive */
+  --destructive: 0 70% 37%;
+  --destructive-foreground: 0 0% 100%;
+
+  /* Border & Input */
+  --border: 210 20% 90%;
+  --input: 210 20% 90%;
+  --ring: 207 23% 28%;
+  --radius: 0.75rem;
+
+  /* Victoria Property Brand Colors */
+  --victoria-navy: 207 23% 28%;
+  --victoria-red: 0 70% 37%;
+  --victoria-yellow: 45 92% 49%;
+  --victoria-cream: 60 20% 99%;
+  --victoria-light: 210 25% 97%;
+  --victoria-muted-red: 0 42% 43%;
+  --victoria-pastel-red: 0 52% 76%;
+  --victoria-grey: 0 0% 85%;
+
+  /* Shadow System */
+  --shadow-sm: 0 1px 2px 0 hsl(207 23% 28% / 0.05);
+  --shadow-md: 0 4px 6px -1px hsl(207 23% 28% / 0.1), 0 2px 4px -2px hsl(207 23% 28% / 0.1);
+  --shadow-lg: 0 10px 15px -3px hsl(207 23% 28% / 0.1), 0 4px 6px -4px hsl(207 23% 28% / 0.1);
+  --shadow-xl: 0 20px 25px -5px hsl(207 23% 28% / 0.1), 0 8px 10px -6px hsl(207 23% 28% / 0.1);
+  --shadow-card: 0 2px 8px -2px hsl(207 23% 28% / 0.08), 0 4px 16px -4px hsl(207 23% 28% / 0.12);
+  --shadow-card-hover: 0 8px 24px -4px hsl(207 23% 28% / 0.15), 0 12px 32px -8px hsl(207 23% 28% / 0.18);
+
+  /* Sidebar */
+  --sidebar-background: 60 20% 99%;
+  --sidebar-foreground: 207 23% 28%;
+  --sidebar-primary: 207 23% 28%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 210 20% 96%;
+  --sidebar-accent-foreground: 207 23% 28%;
+  --sidebar-border: 210 20% 90%;
+  --sidebar-ring: 207 23% 28%;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ===============================
+   DARK MODE
+   =============================== */
+
+.dark {
+  --background: 210 29% 10%;
+  --foreground: 60 20% 99%;
+
+  --card: 210 25% 14%;
+  --card-foreground: 60 20% 99%;
+
+  --popover: 210 25% 14%;
+  --popover-foreground: 60 20% 99%;
+
+  --primary: 60 20% 99%;
+  --primary-foreground: 207 23% 28%;
+
+  --secondary: 0 42% 43%;
+  --secondary-foreground: 0 0% 100%;
+
+  --muted: 210 25% 18%;
+  --muted-foreground: 210 20% 70%;
+
+  --accent: 0 70% 37%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 62% 50%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 210 25% 20%;
+  --input: 210 25% 20%;
+  --ring: 60 20% 99%;
+
+  --sidebar-background: 210 29% 10%;
+  --sidebar-foreground: 60 20% 99%;
+  --sidebar-primary: 60 20% 99%;
+  --sidebar-primary-foreground: 207 23% 28%;
+  --sidebar-accent: 210 25% 18%;
+  --sidebar-accent-foreground: 60 20% 99%;
+  --sidebar-border: 210 25% 20%;
+  --sidebar-ring: 60 20% 99%;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ===============================
+   BASE STYLES
+   =============================== */
+
+*,
+::before,
+::after {
+  border-color: hsl(var(--border));
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: "Plus Jakarta Sans", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+/* ===============================
+   BUTTON COMPONENTS
+   =============================== */
+
+.btn-victoria {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn-victoria-primary {
+  background-color: hsl(var(--victoria-red));
+  color: white;
+  box-shadow: var(--shadow-md);
+}
+
+.btn-victoria-primary:hover {
+  background-color: hsl(var(--victoria-red) / 0.9);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-victoria-secondary {
+  background-color: hsl(var(--victoria-navy));
+  color: white;
+}
+
+.btn-victoria-secondary:hover {
+  background-color: hsl(var(--victoria-navy) / 0.9);
+}
+
+.btn-victoria-outline {
+  border: 2px solid hsl(var(--victoria-navy));
+  color: hsl(var(--victoria-navy));
+  background-color: transparent;
+}
+
+.btn-victoria-outline:hover {
+  background-color: hsl(var(--victoria-navy));
+  color: white;
+}
+
+/* ===============================
+   CARD COMPONENTS
+   =============================== */
+
+.card-property {
+  background-color: hsl(var(--card));
+  border-radius: 0.75rem;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-card);
+}
+
+.card-property:hover {
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-4px);
+}
+
+/* ===============================
+   BADGE COMPONENTS
+   =============================== */
+
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-sale {
+  background-color: hsl(var(--victoria-red));
+  color: white;
+}
+
+.badge-rent {
+  background-color: hsl(var(--victoria-navy));
+  color: white;
+}
+
+.badge-hot {
+  background-color: hsl(var(--victoria-yellow));
+  color: hsl(var(--victoria-navy));
+}
+
+/* ===============================
+   INPUT COMPONENTS
+   =============================== */
+
+.input-search {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--card));
+  color: hsl(var(--foreground));
+  transition: all 0.2s ease;
+}
+
+.input-search::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+.input-search:focus {
+  outline: none;
+  border-color: hsl(var(--victoria-navy));
+  box-shadow: 0 0 0 3px hsl(var(--victoria-navy) / 0.1);
+}
+
+/* ===============================
+   LAYOUT UTILITIES
+   =============================== */
+
+.section-padding {
+  padding-top: 4rem;
+  padding-bottom: 4rem;
+}
+
+@media (min-width: 768px) {
+  .section-padding {
+    padding-top: 6rem;
+    padding-bottom: 6rem;
+  }
+}
+
+.container-victoria {
+  max-width: 80rem;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container-victoria {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-victoria {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* ===============================
+   COLOR UTILITIES
+   =============================== */
+
+.text-victoria-navy {
+  color: hsl(var(--victoria-navy));
+}
+
+.text-victoria-red {
+  color: hsl(var(--victoria-red));
+}
+
+.text-victoria-yellow {
+  color: hsl(var(--victoria-yellow));
+}
+
+.bg-victoria-navy {
+  background-color: hsl(var(--victoria-navy));
+}
+
+.bg-victoria-red {
+  background-color: hsl(var(--victoria-red));
+}
+
+.bg-victoria-yellow {
+  background-color: hsl(var(--victoria-yellow));
+}
+
+.bg-victoria-cream {
+  background-color: hsl(var(--victoria-cream));
+}
+
+.bg-victoria-light {
+  background-color: hsl(var(--victoria-light));
+}
+
+.border-victoria-navy {
+  border-color: hsl(var(--victoria-navy));
+}
+
+/* ===============================
+   GRADIENT UTILITIES
+   =============================== */
+
+.gradient-hero {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--victoria-navy)) 0%,
+    hsl(207 23% 22%) 100%
+  );
+}
+
+.gradient-overlay {
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    hsl(207 23% 28% / 0.7) 100%
+  );
 }
