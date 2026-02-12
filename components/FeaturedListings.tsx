@@ -41,7 +41,7 @@ const properties = [
     bedrooms: 2,
     bathrooms: 1,
     area: 85,
-    status: "rent" as const,
+    status: "hot" as const,
   },
   {
     id: 4,

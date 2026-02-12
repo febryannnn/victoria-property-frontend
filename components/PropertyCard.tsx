@@ -54,7 +54,7 @@ const PropertyCard = ({
         <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
         {/* Badges */}
-        <div className="absolute top-4 left-4 flex gap-2">
+        <div className="absolute top-3 left-3 flex flex-wrap gap-2">
           <span className={statusStyles[status]}>{statusText[status]}</span>
           {isNew && (
             <span className="badge-status bg-victoria-yellow text-victoria-navy">Baru</span>

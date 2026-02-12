@@ -51,10 +51,12 @@ const Navbar = () => {
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3">
-              <div className="w-10 h-10 flex items-center justify-center">
-                <img
-                  src="../public/logo-rmv-bg.png"
+              <div className="w-10 h-10 flex items-center justify-center relative">
+                <Image
+                  src="/logo-rmv-bg.png"
                   alt="Victoria Property"
+                  width={40}
+                  height={40}
                   className="object-contain"
                 />
               </div>
@@ -96,7 +98,7 @@ const Navbar = () => {
               </Link>
 
               <Link href="/auth">
-                <Button className="bg-victoria-red hover:bg-victoria-red/90 text-primary-foreground">
+                <Button className="bg-victoria-red hover:bg-victoria-red/90 text-victoria-cream">
                   Register
                 </Button>
               </Link>

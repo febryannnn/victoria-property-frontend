@@ -18,13 +18,15 @@ const HeroSection = () => {
   ];
 
   return (
-    <section className="relative min-h-[90vh] flex items-center justify-center pt-32 pb-16 overflow-hidden">
+    <section className="relative min-h-screen flex items-center justify-center pt-32 pb-16 overflow-hidden">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
           src={heroImage}
           alt="Luxury Property"
-          className="w-full h-full object-cover"
+          fill 
+          priority
+          className="hero-image"
         />
         <div className="absolute inset-0 bg-gradient-to-b
   from-[hsl(var(--victoria-navy)/0.7)]
@@ -36,13 +38,13 @@ const HeroSection = () => {
       <div className="relative z-10 container-victoria">
         <div className="max-w-4xl mx-auto text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-victoria-yellow/20 backdrop-blur-sm border border-victoria-yellow rounded-full px-4 py-2 mb-6 animate-fade-in">
-            <span className="w-2 h-2 bg-victoria-yellow rounded-full animate-pulse" />
-            <span className="text-victoria-yellow text-sm font-medium">Partner Properti Terpercaya #1</span>
+          <div className="inline-flex items-center gap-2 bg-victoria-yellow/20 backdrop-blur-sm border border-[hsl(var(--victoria-yellow))] rounded-full px-4 py-2 mb-6 animate-fade-in">
+            <span className="w-2 h-2 bg-[hsl(var(--victoria-yellow))] rounded-full animate-pulse" />
+            <span className="text-[hsl(var(--victoria-yellow))] text-sm font-medium">Partner Properti Terpercaya #1</span>
           </div>
 
           {/* Heading */}
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-6 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-6 animate-slide-up" style={{ animationDelay: '0.1s' , fontWeight: 800 }}>
             Temukan Hunian
             <span className="block text-victoria-yellow font-extrabold">Impian Anda</span>
           </h1>

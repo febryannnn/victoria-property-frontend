@@ -19,9 +19,9 @@ const NavLink = forwardRef<HTMLAnchorElement, NavLinkProps>(
   ) => {
     const pathname = usePathname();
 
-    const isActive = exact
+    const isActive = pathname ? (exact
       ? pathname === href
-      : pathname.startsWith(href);
+      : pathname.startsWith(href)) : false;
 
     return (
       <Link
