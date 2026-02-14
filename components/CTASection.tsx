@@ -15,7 +15,7 @@ const CTASection = () => {
           fill
           className="hero-image"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-[hsl(var(--victoria-navy)/0.6)] via-[hsl(var(--victoria-navy)/0.5)] to-[hsl(var(--victoria-navy)/0.6)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[hsl(var(--victoria-navy)/0.6)] via-[hsl(var(--victoria-navy)/0.5)] to-[hsl(var(--victoria-navy)/1.0)]" />
       </div>
 
       <div className="relative z-10 container-victoria">

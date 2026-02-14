@@ -1,3 +1,4 @@
+"use client"
 import { useState } from 'react';
 import { Search, SlidersHorizontal, Grid3X3, List, ChevronDown } from 'lucide-react';
 import Navbar from '@/components/Navbar';

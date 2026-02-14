@@ -24,7 +24,7 @@ const HeroSection = () => {
         <Image
           src={heroImage}
           alt="Luxury Property"
-          fill 
+          fill
           priority
           className="hero-image"
         />
@@ -38,13 +38,17 @@ const HeroSection = () => {
       <div className="relative z-10 container-victoria">
         <div className="max-w-4xl mx-auto text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-victoria-yellow/20 backdrop-blur-sm border border-[hsl(var(--victoria-yellow))] rounded-full px-4 py-2 mb-6 animate-fade-in">
+          <div className="inline-flex items-center gap-2 
+            bg-victoria-yellow-20
+            backdrop-blur-sm 
+            border border-[hsl(var(--victoria-yellow))] 
+            rounded-full px-4 py-2 mb-6 animate-fade-in">
             <span className="w-2 h-2 bg-[hsl(var(--victoria-yellow))] rounded-full animate-pulse" />
             <span className="text-[hsl(var(--victoria-yellow))] text-sm font-medium">Partner Properti Terpercaya #1</span>
           </div>
 
           {/* Heading */}
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-6 animate-slide-up" style={{ animationDelay: '0.1s' , fontWeight: 800 }}>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-6 animate-slide-up" style={{ animationDelay: '0.1s', fontWeight: 800 }}>
             Temukan Hunian
             <span className="block text-victoria-yellow font-extrabold">Impian Anda</span>
           </h1>
@@ -57,86 +61,84 @@ const HeroSection = () => {
           {/* Search Box */}
 
           <div
-  className="bg-victoria-light backdrop-blur-md rounded-2xl p-6 shadow-victoria-xl border border-border"
-  style={{ animationDelay: '0.3s' }}
->
-  {/* Tabs */}
-  <div className="flex gap-3 mb-6">
-    <button
-      onClick={() => setActiveTab('dijual')}
-      className={`px-6 py-3 rounded-xl font-semibold text-sm transition-all
-        ${activeTab === 'dijual'
-          ? 'bg-victoria-red text-white shadow-md'
-          : 'bg-muted text-muted-foreground hover:bg-victoria-navy hover:text-white'
-        }`}
-    >
-      Dijual
-    </button>
+            className="bg-victoria-light backdrop-blur-md rounded-2xl p-6 shadow-victoria-xl border border-border"
+            style={{ animationDelay: '0.3s' }}
+          >
+            {/* Tabs */}
+            <div className="flex gap-3 mb-6">
+              <button
+                onClick={() => setActiveTab('dijual')}
+                className={`px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-300 ease-in-out ${activeTab === 'dijual'
+                  ? 'bg-victoria-red text-white shadow-lg scale-105'
+                  : 'bg-muted text-muted-foreground hover:bg-victoria-navy hover:text-victoria-red hover:shadow-md hover:scale-105'
+                  }`}
+              >
+                Dijual
+              </button>
 
-    <button
-      onClick={() => setActiveTab('disewa')}
-      className={`px-6 py-3 rounded-xl font-semibold text-sm transition-all
-        ${activeTab === 'disewa'
-          ? 'bg-victoria-red text-white shadow-md'
-          : 'bg-muted text-muted-foreground hover:bg-victoria-navy hover:text-white'
-        }`}
-    >
-      Disewa
-    </button>
-  </div>
+              <button
+                onClick={() => setActiveTab('disewa')}
+                className={`px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-300 ease-in-out ${activeTab === 'disewa'
+                  ? 'bg-victoria-red text-white shadow-lg scale-105'
+                  : 'bg-muted text-muted-foreground hover:bg-victoria-navy hover:text-victoria-red hover:shadow-md hover:scale-105'
+                  }`}
+              >
+                Disewa
+              </button>
+            </div>
 
-  {/* Search Fields */}
-  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-    {/* Location */}
-    <div className="relative">
-      <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-        <MapPin className="w-5 h-5 text-muted-foreground" />
-      </div>
+            {/* Search Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Location */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                  <MapPin className="w-5 h-5 text-muted-foreground" />
+                </div>
 
-      <input
-        type="text"
-        placeholder="Masukkan lokasi..."
-        className="h-14 w-full rounded-xl border border-border bg-white pl-14 pr-4 text-base focus:outline-none focus:ring-2 focus:ring-victoria-red"
-      />
-    </div>
+                <input
+                  type="text"
+                  placeholder="Masukkan lokasi..."
+                  className="h-14 w-full rounded-xl border border-border bg-white pl-14 pr-4 text-base focus:outline-none focus:ring-2 focus:ring-victoria-red"
+                />
+              </div>
 
-    {/* Property Type */}
-    <div className="relative">
-      <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-        <Home className="w-5 h-5 text-muted-foreground" />
-      </div>
+              {/* Property Type */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                  <Home className="w-5 h-5 text-muted-foreground" />
+                </div>
 
-      <select className="h-14 w-full rounded-xl border border-border bg-white pl-14 pr-4 text-base appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-victoria-red">
-        {propertyTypes.map((type) => (
-          <option key={type} value={type}>
-            {type}
-          </option>
-        ))}
-      </select>
-    </div>
+                <select className="h-14 w-full rounded-xl border border-border bg-white pl-14 pr-4 text-base appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-victoria-red">
+                  {propertyTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-    {/* Price Range */}
-    <div className="relative">
-      <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-        <DollarSign className="w-5 h-5 text-muted-foreground" />
-      </div>
+              {/* Price Range */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                  <DollarSign className="w-5 h-5 text-muted-foreground" />
+                </div>
 
-      <select className="h-14 w-full rounded-xl border border-border bg-white pl-14 pr-4 text-base appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-victoria-red">
-        {priceRanges.map((range) => (
-          <option key={range} value={range}>
-            {range}
-          </option>
-        ))}
-      </select>
-    </div>
+                <select className="h-14 w-full rounded-xl border border-border bg-white pl-14 pr-4 text-base appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-victoria-red">
+                  {priceRanges.map((range) => (
+                    <option key={range} value={range}>
+                      {range}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-    {/* Search Button */}
-    <Button className="h-14 w-full rounded-xl bg-victoria-red hover:bg-victoria-red/90 text-white font-semibold text-base flex items-center justify-center gap-2">
-      <Search className="w-5 h-5" />
-      Cari Properti
-    </Button>
-  </div>
-</div>
+              {/* Search Button */}
+              <Button className="h-14 w-full rounded-xl bg-victoria-red hover:bg-victoria-red/90 text-white font-semibold text-base flex items-center justify-center gap-2">
+                <Search className="w-5 h-5" />
+                Cari Properti
+              </Button>
+            </div>
+          </div>
 
 
           {/* Stats */}

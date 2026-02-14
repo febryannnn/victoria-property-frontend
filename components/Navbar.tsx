@@ -6,10 +6,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Image from 'next/image'
+import { useEffect, useRef } from "react";
+import { User } from "lucide-react";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const [user, setUser] = useState<any>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const navLinks = [
     { name: "Beranda", href: "/" },
@@ -17,6 +22,38 @@ const Navbar = () => {
     { name: "Tentang Kami", href: "/about" },
     { name: "Kontak", href: "/contact" },
   ];
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setUser(null);
+    setShowDropdown(false);
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
@@ -87,21 +124,62 @@ const Navbar = () => {
             </div>
 
             {/* CTA Buttons */}
-            <div className="hidden lg:flex items-center gap-3">
-              <Link href="/auth">
-                <Button
-                  variant="outline"
-                  className="border-victoria-navy text-victoria-navy hover:bg-victoria-navy hover:text-primary-foreground"
-                >
-                  Log In
-                </Button>
-              </Link>
+            <div className="hidden lg:flex items-center gap-3 relative">
+              {!user ? (
+                <>
+                  <Link href="/login">
+                    <Button
+                      variant="outline"
+                      className="border-victoria-navy text-victoria-navy hover:bg-victoria-navy hover:text-primary-foreground"
+                    >
+                      Log In
+                    </Button>
+                  </Link>
 
-              <Link href="/auth">
-                <Button className="bg-victoria-red hover:bg-victoria-red/90 text-victoria-cream">
-                  Register
-                </Button>
-              </Link>
+                  <Link href="/register">
+                    <Button className="bg-victoria-red hover:bg-victoria-red/90 text-victoria-cream">
+                      Register
+                    </Button>
+                  </Link>
+                </>
+              ) : (
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setShowDropdown(!showDropdown)}
+                    className="flex items-center gap-2 font-medium text-victoria-navy hover:text-victoria-red transition-colors"
+                  >
+                    <span>{user.username}</span>
+                    <User className="w-5 h-5" />
+                  </button>
+
+                  {showDropdown && (
+                    <div className="absolute right-0 mt-3 w-48 bg-white shadow-lg rounded-md border border-border z-50">
+                      <Link
+                        href="/profile"
+                        className="block px-4 py-2 hover:bg-muted"
+                      >
+                        Profile
+                      </Link>
+
+                      {user.role === 1 && (
+                        <Link
+                          href="/admin"
+                          className="block px-4 py-2 hover:bg-muted"
+                        >
+                          Admin Panel
+                        </Link>
+                      )}
+
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-4 py-2 hover:bg-muted text-red-500"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -133,20 +211,47 @@ const Navbar = () => {
                 ))}
 
                 <div className="flex flex-col gap-3 pt-4 border-t border-border">
-                  <Link href="/auth" onClick={() => setIsOpen(false)}>
-                    <Button
-                      variant="outline"
-                      className="w-full border-victoria-navy text-victoria-navy"
-                    >
-                      Log In
-                    </Button>
-                  </Link>
+                  {!user ? (
+                    <>
+                      <Link href="/login" onClick={() => setIsOpen(false)}>
+                        <Button variant="outline" className="w-full border-victoria-navy text-victoria-navy">
+                          Log In
+                        </Button>
+                      </Link>
 
-                  <Link href="/auth" onClick={() => setIsOpen(false)}>
-                    <Button className="w-full bg-victoria-red text-primary-foreground">
-                      Register
-                    </Button>
-                  </Link>
+                      <Link href="/register" onClick={() => setIsOpen(false)}>
+                        <Button className="w-full bg-victoria-red text-primary-foreground">
+                          Register
+                        </Button>
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <Link href="/profile" onClick={() => setIsOpen(false)}>
+                        <Button variant="outline" className="w-full">
+                          Profile
+                        </Button>
+                      </Link>
+
+                      {user.role === 1 && (
+                        <Link href="/admin" onClick={() => setIsOpen(false)}>
+                          <Button variant="outline" className="w-full">
+                            Admin Panel
+                          </Button>
+                        </Link>
+                      )}
+
+                      <Button
+                        onClick={() => {
+                          handleLogout();
+                          setIsOpen(false);
+                        }}
+                        className="w-full bg-red-500"
+                      >
+                        Logout
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

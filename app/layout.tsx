@@ -1,5 +1,6 @@
 import "./globals.css";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -16,7 +17,9 @@ export default function RootLayout({
     <html lang="id">
       <body className={plusJakarta.variable}>
         {children}
+        <Toaster position="top-center" richColors />
       </body>
     </html>
   );
 }
+

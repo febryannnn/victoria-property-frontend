@@ -1,3 +1,4 @@
+'use client'
 import { useState } from 'react';
 import { MapPin, Phone, Mail, Clock, Send, MessageCircle } from 'lucide-react';
 import Navbar from '@/components/Navbar';
