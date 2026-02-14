@@ -33,3 +33,21 @@ export interface GetAllPropertyResponse {
         property: Property[];
     };
 }
+
+export interface User {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+    phone?: string;
+    created_at: string;
+    properties_count?: number;
+}
+
+export interface DashboardStats {
+    total_properties: number;
+    total_users: number;
+    total_sales: number;
+    total_rentals: number;
+    recent_properties: Property[];
+}

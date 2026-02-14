@@ -1,5 +1,7 @@
 import { apiFetch } from "../http";
+import { apiAdminFetch } from "../http"
 import { GetAllPropertyResponse } from "../types/property";
+import { Property, User, DashboardStats } from "../types/property";
 
 export function getAllProperties(prop_page = 1, prop_limit = 10) {
     return apiFetch<GetAllPropertyResponse>(
@@ -10,3 +12,41 @@ export function getAllProperties(prop_page = 1, prop_limit = 10) {
     );
 }
 
+import { imageFetch } from "./image.service";
+
+export async function uploadPropertyImages(
+    propertyId: number,
+    files: File[]
+) {
+    const formData = new FormData();
+
+    files.forEach((file) => {
+        formData.append("images", file);
+    });
+
+    return imageFetch(
+        `/api/agent/properties/${propertyId}/images`,
+        formData
+    );
+}
+
+export async function createProperty(property: Property): Promise<Property> {
+    return apiAdminFetch<Property>("/api/agent/properties", {
+        method: "POST",
+        body: JSON.stringify(property),
+    });
+}
+
+export async function updateProperty(id: number, property: Property): Promise<Property> {
+    return apiFetch<Property>(`api/properties/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(property),
+    });
+}
+
+export async function deleteProperties(ids: number[]): Promise<void> {
+    return apiAdminFetch<void>("/properties", {
+        method: "DELETE",
+        body: JSON.stringify({ ids }),
+    });
+}

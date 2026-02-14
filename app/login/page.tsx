@@ -31,17 +31,18 @@ export default function LoginPage() {
         email,
         password,
       });
+
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
 
       toast.success("Login berhasil!");
       console.log(res)
+
       if (res.data.user.role === 1) {
-        router.push("/admin");
+        router.push("/admin/dashboard");
       } else {
         router.push("/");
       }
-      // router.push("/dashboard");
 
     } catch (err: any) {
       toast.error(err?.message || "Login gagal")
