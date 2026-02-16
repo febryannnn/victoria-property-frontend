@@ -15,7 +15,9 @@ const CTASection = () => {
           fill
           className="hero-image"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-[hsl(var(--victoria-navy)/0.6)] via-[hsl(var(--victoria-navy)/0.5)] to-[hsl(var(--victoria-navy)/1.0)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-victoria-navy/70 
+  via-victoria-navy/50 
+  to-victoria-navy/100" />
       </div>
 
       <div className="relative z-10 container-victoria">
@@ -24,7 +26,7 @@ const CTASection = () => {
             Siap Menemukan <span className="block">Properti Impian Anda?</span>
           </h2>
 
-          <p className="text-lg md:text-xl text-[hsl(var(--victoria-light))] mb-10" style={{ fontWeight: 500 }}>
+          <p className="text-lg md:text-xl text-white mb-10" style={{ fontWeight: 500 }}>
             Hubungi tim kami sekarang untuk konsultasi gratis dan temukan
             properti yang sesuai dengan kebutuhan dan budget Anda.
           </p>

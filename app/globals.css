@@ -5,483 +5,128 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Extend Tailwind Theme */
-@theme {
-  --shadow-card: 0 2px 8px -2px hsl(207 23% 28% / 0.08), 0 4px 16px -4px hsl(207 23% 28% / 0.12);
-  --shadow-card-hover-red: 0 8px 24px -4px hsl(0 70% 37% / 0.25), 0 12px 32px -8px hsl(0 70% 37% / 0.3);
-  --shadow-card-hover-blue: 0 8px 24px -4px hsl(207 23% 28% / 0.25), 0 12px 32px -8px hsl(207 23% 28% / 0.3);
-}
-
-/* ===============================
-   Victoria Property – Tailwind v4
-   Complete Design System
-   =============================== */
-
-:root {
-  /* Background & Foreground */
-
-  /* Card */
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-
-  /* Popover */
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-
-  /* Primary - Dark Blue/Grey #374957 */
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-
-  /* Secondary - Muted Red #9B4040 */
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-
-  /* Muted */
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-
-  /* Accent Red #A21C1C */
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-
-  /* Warning/Yellow #EEBA0B */
-  --warning: 45 92% 49%;
-  --warning-foreground: 210 29% 15%;
-
-  /* Destructive */
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: 0 0% 100%;
-
-  /* Border & Input */
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --radius: 0.625rem;
-
-  /* Victoria Property Brand Colors */
-  --victoria-navy: 207 23% 28%;
-  --victoria-red: 0 70% 37%;
-  --victoria-maroon: 0 50% 25%;
-  --victoria-yellow: 45 92% 49%;
-  --victoria-cream: 60 20% 99%;
-  --victoria-light: 210 25% 97%;
-  --victoria-muted-red: 0 42% 43%;
-  --victoria-pastel-red: 0 52% 76%;
-  --victoria-grey: 0 0% 85%;
-
-  /* Shadow System */
-  --shadow-sm: 0 1px 2px 0 hsl(207 23% 28% / 0.05);
-  --shadow-md: 0 4px 6px -1px hsl(207 23% 28% / 0.1), 0 2px 4px -2px hsl(207 23% 28% / 0.1);
-  --shadow-lg: 0 10px 15px -3px hsl(207 23% 28% / 0.1), 0 4px 6px -4px hsl(207 23% 28% / 0.1);
-  --shadow-xl: 0 20px 25px -5px hsl(207 23% 28% / 0.1), 0 8px 10px -6px hsl(207 23% 28% / 0.1);
-  --shadow-card: 0 2px 8px -2px hsl(207 23% 28% / 0.08), 0 4px 16px -4px hsl(207 23% 28% / 0.12);
-  --shadow-card-hover: 0 8px 24px -4px hsl(207 23% 28% / 0.15), 0 12px 32px -8px hsl(207 23% 28% / 0.18);
-  --shadow-card-hover-red: 0 8px 24px -4px hsl(0 70% 37% / 0.25), 0 12px 32px -8px hsl(0 70% 37% / 0.3);
-
-  /* Sidebar */
-  --sidebar-background: 60 20% 99%;
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-}
-
-/* ===============================
-   DARK MODE
-   =============================== */
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: 0 0% 100%;
-
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-
-  --sidebar-background: 210 29% 10%;
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-}
-
-/* ===============================
-   BASE STYLES
-   =============================== */
-
-*,
-::before,
-::after {
-  border-color: hsl(var(--border));
-}
-
-body {
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-  font-family: "Plus Jakarta Sans", sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  font-weight: 600;
-  letter-spacing: -0.025em;
-}
-
-/* ===============================
-   BUTTON COMPONENTS
-   =============================== */
-
-.btn-victoria {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  font-weight: 600;
-  transition: all 0.2s ease;
-}
-
-.btn-victoria-primary {
-  background-color: hsl(var(--victoria-red));
-  color: white;
-  box-shadow: var(--shadow-md);
-}
-
-.btn-victoria-primary:hover {
-  background-color: hsl(var(--victoria-red) / 0.9);
-  box-shadow: var(--shadow-lg);
-}
-
-.btn-victoria-secondary {
-  background-color: hsl(var(--victoria-navy));
-  color: white;
-}
-
-.btn-victoria-secondary:hover {
-  background-color: hsl(var(--victoria-navy) / 0.9);
-}
-
-.btn-victoria-outline {
-  border: 2px solid hsl(var(--victoria-navy));
-  color: hsl(var(--victoria-navy));
-  background-color: transparent;
-}
-
-.btn-victoria-outline:hover {
-  background-color: hsl(var(--victoria-navy));
-  color: white;
-}
-
-/* ===============================
-   CARD COMPONENTS
-   =============================== */
-
-.card-property {
-  background-color: hsl(var(--card));
-  border-radius: 0.75rem;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  box-shadow: var(--shadow-card);
-}
-
-.card-property:hover {
-  box-shadow: var(--shadow-card-hover);
-  transform: translateY(-4px);
-}
-
-/* ===============================
-   BADGE COMPONENTS
-   =============================== */
-
-.badge-status {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.375rem 0.875rem;
-  border-radius: 9999px;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
-  line-height: 1;
-}
-
-.badge-sale {
-  background-color: hsl(var(--victoria-red));
-  color: white;
-  display: inline-flex;
-  align-items: center;
-  padding: 0.375rem 0.875rem;
-  border-radius: 9999px;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
-  line-height: 1;
-}
-
-.badge-rent {
-  background-color: hsl(var(--victoria-navy));
-  color: white;
-  display: inline-flex;
-  align-items: center;
-  padding: 0.375rem 0.875rem;
-  border-radius: 9999px;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
-  line-height: 1;
-}
-
-.badge-hot {
-  background-color: hsl(var(--victoria-yellow));
-  color: hsl(var(--victoria-navy));
-  display: inline-flex;
-  align-items: center;
-  padding: 0.375rem 0.875rem;
-  border-radius: 9999px;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
-  line-height: 1;
-}
-
-/* ===============================
-   INPUT COMPONENTS
-   =============================== */
-
-.input-search {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  border: 1px solid hsl(var(--border));
-  background-color: hsl(var(--card));
-  color: hsl(var(--foreground));
-  transition: all 0.2s ease;
-}
-
-.input-search::placeholder {
-  color: hsl(var(--muted-foreground));
-}
-
-.input-search:focus {
-  outline: none;
-  border-color: hsl(var(--victoria-navy));
-  box-shadow: 0 0 0 3px hsl(var(--victoria-navy) / 0.1);
-}
-
-/* ===============================
-   LAYOUT UTILITIES
-   =============================== */
-
-.section-padding {
-  padding-top: 4rem;
-  padding-bottom: 4rem;
-}
-
-@media (min-width: 768px) {
-  .section-padding {
-    padding-top: 6rem;
-    padding-bottom: 6rem;
-  }
-}
-
-.container-victoria {
-  max-width: 80rem;
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: 1rem;
-  padding-right: 1rem;
-}
-
-@media (min-width: 640px) {
-  .container-victoria {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .container-victoria {
-    padding-left: 2rem;
-    padding-right: 2rem;
-  }
-}
-
-/* ===============================
-   COLOR UTILITIES
-   =============================== */
-
-.text-victoria-navy {
-  color: hsl(var(--victoria-navy));
-}
-
-.text-victoria-red {
-  color: hsl(var(--victoria-red));
-}
-
-.text-victoria-yellow {
-  color: hsl(var(--victoria-yellow));
-}
-
-.text-victoria-cream {
-  color: hsl(var(--victoria-light));
-}
-
-.bg-victoria-navy {
-  background-color: hsl(var(--victoria-navy));
-}
-
-.bg-victoria-yellow-20 {
-  background-color: hsl(var(--victoria-yellow) / 0.2);
-}
-
-.bg-victoria-red {
-  background-color: hsl(var(--victoria-red));
-}
-
-.bg-victoria-maroon {
-  background-color: hsl(var(--victoria-maroon));
-}
-
-.bg-victoria-yellow {
-  background-color: hsl(var(--victoria-yellow));
-}
-
-.bg-victoria-cream {
-  background-color: hsl(var(--victoria-cream));
-}
-
-.bg-victoria-light {
-  background-color: hsl(var(--victoria-light));
-}
-
-.border-victoria-navy {
-  border-color: hsl(var(--victoria-navy));
-}
-
-/* ===============================
-   GRADIENT UTILITIES
-   =============================== */
-
-.gradient-hero {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--victoria-navy)) 0%,
-    hsl(207 23% 22%) 100%
-  );
-}
-
-.gradient-overlay {
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    hsl(207 23% 28% / 0.7) 100%
-  );
-}
-
-.hero-image{
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+/* =====================================================
+   THEME TOKENS
+   Semua warna dimasukkan ke sistem Tailwind
+   ===================================================== */
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+  /* Radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.875rem;
+
+  /* Core Colors */
+  --color-background: oklch(1 0 0);
+  --color-foreground: oklch(0.145 0 0);
+
+  --color-card: oklch(1 0 0);
+  --color-card-foreground: oklch(0.145 0 0);
+
+  --color-popover: oklch(1 0 0);
+  --color-popover-foreground: oklch(0.145 0 0);
+
+  --color-primary: oklch(0.205 0 0);
+  --color-primary-foreground: oklch(0.985 0 0);
+
+  --color-secondary: oklch(0.97 0 0);
+  --color-secondary-foreground: oklch(0.205 0 0);
+
+  --color-muted: oklch(0.97 0 0);
+  --color-muted-foreground: oklch(0.556 0 0);
+
+  --color-accent: oklch(0.97 0 0);
+  --color-accent-foreground: oklch(0.205 0 0);
+
+  --color-destructive: oklch(0.577 0.245 27.325);
+
+  --color-border: oklch(0.922 0 0);
+  --color-input: oklch(0.922 0 0);
+  --color-ring: oklch(0.708 0 0);
+
+  /* ================================================
+     Victoria Brand Colors (TAILWIND NATIVE)
+     ================================================ */
+
+  --color-victoria-navy: hsl(207 23% 28%);
+  --color-victoria-red: hsl(0 70% 37%);
+  --color-victoria-maroon: hsl(0 50% 25%);
+  --color-victoria-yellow: hsl(45 92% 49%);
+  --color-victoria-cream: hsl(60 20% 99%);
+  --color-victoria-light: hsl(210 25% 97%);
+  --color-victoria-muted-red: hsl(0 42% 43%);
+  --color-victoria-pastel-red: hsl(0 52% 76%);
+  --color-victoria-grey: hsl(0 0% 85%);
 }
+
+/* =====================================================
+   DARK MODE
+   ===================================================== */
+
+.dark {
+  --color-background: oklch(0.145 0 0);
+  --color-foreground: oklch(0.985 0 0);
+
+  --color-card: oklch(0.205 0 0);
+  --color-card-foreground: oklch(0.985 0 0);
+
+  --color-popover: oklch(0.205 0 0);
+  --color-popover-foreground: oklch(0.985 0 0);
+
+  --color-border: oklch(1 0 0 / 10%);
+  --color-input: oklch(1 0 0 / 15%);
+  --color-ring: oklch(0.556 0 0);
+}
+
+/* =====================================================
+   BASE STYLES
+   ===================================================== */
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
-    @apply bg-background text-foreground;
+    font-family: "Plus Jakarta Sans", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+/* =====================================================
+   CUSTOM COMPONENT STYLES
+   Hanya untuk komponen kompleks
+   Tidak buat utility warna manual lagi
+   ===================================================== */
+
+.card-property {
+  @apply bg-card rounded-xl shadow-md transition-all duration-300;
+}
+
+.card-property:hover {
+  @apply shadow-xl -translate-y-1;
+}
+
+.container-victoria {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.section-padding {
+  @apply py-16 md:py-24;
+}
+
+.hero-image {
+  @apply w-full h-full object-cover;
 }

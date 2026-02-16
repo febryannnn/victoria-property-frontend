@@ -40,11 +40,23 @@ const CategorySection = () => {
             <Link
               key={category.name}
               href="/properties"
-              className="group bg-card rounded-xl p-6 text-center shadow-card hover:shadow-card-hover-blue transition-all duration-300 hover:-translate-y-1 animate-fade-in"
-              style={{ animationDelay: `${index * 0.1}s` }}
+              className="group bg-card rounded-2xl p-6 text-center
+             shadow-sm hover:shadow-lg
+             transition-all duration-300
+             hover:-translate-y-1"
             >
-              <div className="w-16 h-16 mx-auto mb-8 rounded-xl bg-victoria-light flex items-center justify-center group-hover:bg-victoria-navy transition-colors duration-300">
-                <category.icon className="w-8 h-8 text-victoria-red group-hover:text-primary-foreground transition-colors duration-300" />
+              <div className="w-16 h-16 mx-auto mb-8 rounded-xl
+                bg-victoria-light
+                flex items-center justify-center
+                transition-all duration-300
+                group-hover:bg-victoria-red">
+
+                <category.icon
+                  className="w-8 h-8
+               text-victoria-red
+               transition-colors duration-300
+               group-hover:text-white"
+                />
               </div>
               <h3 className="font-semibold text-foreground mb-1">
                 {category.name}

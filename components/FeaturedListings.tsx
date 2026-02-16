@@ -23,7 +23,7 @@ const FeaturedListings = () => {
 
       const mapped = res.data.map((item: any) => ({
         id: item.id,
-        image: `${process.env.NEXT_PUBLIC_API_URL}/${item.cover_image_url}`,
+        image: `http://localhost:8080${item.cover_image_url}`,
         title: item.title,
         location: `${item.district}, ${item.regency}`,
         price: formatRupiah(item.price),
@@ -74,10 +74,10 @@ const FeaturedListings = () => {
             variant="outline"
             className="border-victoria-navy text-victoria-navy hover:bg-victoria-navy hover:text-primary-foreground gap-2 w-fit"
           >
-            <Link href="/properties">
+            {/* <Link href="/properties">
               Lihat Semua
               <ArrowRight className="w-4 h-4" />
-            </Link>
+            </Link> */}
           </Button>
         </div>
 
@@ -92,6 +92,9 @@ const FeaturedListings = () => {
         {!loading && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {properties.map((property, index) => (
+              <Link key={property.id}
+                href={`/property/${property.id}`}
+                className="block">
               <div
                 key={property.id}
                 className="animate-fade-in"
@@ -99,6 +102,7 @@ const FeaturedListings = () => {
               >
                 <PropertyCard {...property} />
               </div>
+              </Link>
             ))}
           </div>
         )}
@@ -119,7 +123,7 @@ const FeaturedListings = () => {
             hover:shadow-[0_10px_25px_-5px_hsl(var(--victoria-red)/0.4)]"
           >
             <Link href="/properties" className="flex items-center gap-2 group">
-              View More Properties
+              Lihat Semua Properti
               <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
             </Link>
           </Button>

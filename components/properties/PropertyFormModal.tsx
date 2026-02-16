@@ -22,7 +22,8 @@ import { Property } from "@/lib/types/property";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { uploadPropertyImages } from "@/lib/services/property.service";
-import { createProperty } from "@/lib/services/property.service"
+import { toast } from "sonner";
+import { createProperty, updateProperty } from "@/lib/services/property.service";
 
 interface PropertyFormModalProps {
     open: boolean;
@@ -63,22 +64,27 @@ export default function PropertyFormModal({
         property_type_id: 1,
         user_id: 1,
     });
-
-    
+    const [loading, setLoading] = useState(false);
     const [imageFiles, setImageFiles] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+    const [createdPropertyId, setCreatedPropertyId] = useState<number | null>(null);
+    const [uploading, setUploading] = useState(false);
+    
 
     useEffect(() => {
         if (property && mode === "edit") {
             setFormData(property);
+            setCreatedPropertyId(property.id!);
 
             if (property.cover_image_url) {
                 setImagePreviews([
-                    `${process.env.NEXT_PUBLIC_API_URL}/${property.cover_image_url}`,
+                    `http://localhost:8080${property.cover_image_url}`,
+                    
                 ]);
             } else {
                 setImagePreviews([]);
             }
+
         } else {
             // reset create mode
             setFormData({
@@ -106,6 +112,7 @@ export default function PropertyFormModal({
                 user_id: 1,
             });
 
+            setCreatedPropertyId(null);
             setImagePreviews([]);
             setImageFiles([]);
         }
@@ -138,24 +145,79 @@ export default function PropertyFormModal({
     //     }));
     // };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleUploadImages = async () => {
+        if (!createdPropertyId) {
+            toast.error("Please create property first");
+            return;
+        }
+
+        if (imageFiles.length === 0) {
+            toast.error("No images selected");
+            return;
+        }
 
         try {
+            setUploading(true);
 
-            const createdProperty = await createProperty(formData);
-            console.log("Created:", createdProperty);
+            await toast.promise(
+                uploadPropertyImages(createdPropertyId, imageFiles),
+                {
+                    loading: "Uploading images...",
+                    success: "Images uploaded successfully",
+                    error: "Failed to upload images",
+                }
+            );
 
-            alert("yey berhasil")
+            setImageFiles([]);
+        } finally {
+            setUploading(false);
+        }
+    };
 
-            if (imageFiles.length && createdProperty?.id) {
-                await uploadPropertyImages(createdProperty.id, imageFiles);
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (loading) return;
+
+        try {
+            setLoading(true);
+
+            let result: Property;
+
+            if (mode === "create") {
+                result = await toast.promise(
+                    createProperty(formData),
+                    {
+                        loading: "Creating property...",
+                        success: "Property created successfully",
+                        error: "Failed to create property",
+                    }
+                );
+
+                // simpan id supaya bisa upload image
+                setCreatedPropertyId(result.id!);
+
+            } else {
+                if (!formData.id) {
+                    toast.error("Property ID not found");
+                    return;
+                }
+
+                result = await toast.promise(
+                    updateProperty(formData.id, formData),
+                    {
+                        loading: "Updating property...",
+                        success: "Property updated successfully",
+                        error: "Failed to update property",
+                    }
+                );
+
+                setCreatedPropertyId(result.id!);
             }
 
-            onClose();
-        } catch (err) {
-            alert(err)
-            console.error(err);
+            onSubmit(result);
+
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -240,9 +302,22 @@ export default function PropertyFormModal({
                                             ))}
                                         </div>
                                     )}
+                                    
                                 </div>
+                                
                             </div>
                         </div>
+
+                        {createdPropertyId !== null && (
+                            <Button
+                                type="button"
+                                onClick={handleUploadImages}
+                                disabled={uploading || imageFiles.length === 0}
+                                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                                {uploading ? "Uploading..." : "Upload Images"}
+                            </Button>
+                        )}
 
                         {/* Basic Information */}
                         <div className="space-y-4">
@@ -552,9 +627,14 @@ export default function PropertyFormModal({
                         <div className="flex gap-4 pt-4">
                             <Button
                                 type="submit"
+                                disabled={loading}
                                 className="bg-[#5B0F1A] hover:bg-[#7A1424] text-white flex-1"
                             >
-                                {mode === "create" ? "Create Property" : "Update Property"}
+                                {loading
+                                    ? "Saving..."
+                                    : mode === "create"
+                                        ? "Create Property"
+                                        : "Update Property"}
                             </Button>
                             <Button
                                 type="button"

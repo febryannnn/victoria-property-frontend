@@ -44,15 +44,15 @@ const WhyChooseUs = () => {
               <span className="w-2 h-2 bg-victoria-yellow rounded-full" />
               <span className="text-victoria-navy text-sm font-semibold">Mengapa Victoria Property?</span>
             </div>
-            
+
             <h2 className="text-3xl md:text-4xl font-bold text-victoria-navy mb-6 leading-tight">
               Partner Terpercaya untuk
               <span className="text-victoria-red block">Investasi Properti Anda</span>
             </h2>
-            
+
             <p className="text-muted-foreground text-lg mb-8">
-              Dengan pengalaman lebih dari 10 tahun di industri properti Indonesia, 
-              kami berkomitmen memberikan layanan terbaik untuk membantu Anda menemukan 
+              Dengan pengalaman lebih dari 10 tahun di industri properti Indonesia,
+              kami berkomitmen memberikan layanan terbaik untuk membantu Anda menemukan
               hunian atau investasi yang tepat.
             </p>
 
@@ -81,7 +81,7 @@ const WhyChooseUs = () => {
                 className="bg-card p-6 rounded-xl shadow-card hover:shadow-card-hover transition-all duration-300 group animate-fade-in"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <div className="w-12 h-12 rounded-lg bg-victoria-light flex items-center justify-center mb-4 group-hover:bg-victoria-navy transition-colors">
+                <div className="w-12 h-12 rounded-lg bg-victoria-light flex items-center justify-center mb-4 group-hover:bg-victoria-red transition-colors">
                   <feature.icon className="w-6 h-6 text-victoria-navy group-hover:text-primary-foreground transition-colors" />
                 </div>
                 <h3 className="font-semibold text-foreground mb-2">{feature.title}</h3>

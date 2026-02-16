@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Property } from "@/lib/types/property";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { deleteProperty } from "@/lib/services/property.service";
+import { toast } from "sonner";
 
 interface DeletePropertyModalProps {
     open: boolean;
@@ -27,6 +29,7 @@ export default function DeletePropertyModal({
     properties,
 }: DeletePropertyModalProps) {
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
+    const [loading, setLoading] = useState(false);
 
     const handleToggle = (id: number) => {
         setSelectedIds((prev) =>
@@ -42,10 +45,26 @@ export default function DeletePropertyModal({
         }
     };
 
-    const handleDelete = () => {
-        onDelete(selectedIds);
-        setSelectedIds([]);
-        onClose();
+    const handleDelete = async () => {
+        if (selectedIds.length === 0) return;
+
+        try {
+            setLoading(true);
+
+            await Promise.all(
+                selectedIds.map((id) => deleteProperty(id))
+            );
+
+            toast.success(`${selectedIds.length} property deleted successfully`);
+
+            onDelete(selectedIds);
+            setSelectedIds([]);
+            onClose();
+        } catch (error: any) {
+            toast.error(error?.message || "Failed to delete properties");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (

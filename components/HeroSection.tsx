@@ -28,10 +28,11 @@ const HeroSection = () => {
           priority
           className="hero-image"
         />
-        <div className="absolute inset-0 bg-gradient-to-b
-  from-[hsl(var(--victoria-navy)/0.7)]
-  via-[hsl(var(--victoria-navy)/0.5)]
-  to-[hsl(var(--victoria-navy)/0.8)]" />
+        <div className="absolute inset-0 bg-gradient-to-b 
+  from-victoria-navy/70 
+  via-victoria-navy/50 
+  to-victoria-navy/80"
+        />
       </div>
 
       {/* Content */}
@@ -39,12 +40,12 @@ const HeroSection = () => {
         <div className="max-w-4xl mx-auto text-center">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 
-            bg-victoria-yellow-20
+            bg-victoria-yellow/20
             backdrop-blur-sm 
-            border border-[hsl(var(--victoria-yellow))] 
+            border border-victoria-yellow 
             rounded-full px-4 py-2 mb-6 animate-fade-in">
-            <span className="w-2 h-2 bg-[hsl(var(--victoria-yellow))] rounded-full animate-pulse" />
-            <span className="text-[hsl(var(--victoria-yellow))] text-sm font-medium">Partner Properti Terpercaya #1</span>
+            <span className="w-2 h-2 bg-victoria-yellow rounded-full animate-pulse" />
+            <span className="text-victoria-yellow text-sm font-medium">Partner Properti Terpercaya #1</span>
           </div>
 
           {/* Heading */}
@@ -70,7 +71,7 @@ const HeroSection = () => {
                 onClick={() => setActiveTab('dijual')}
                 className={`px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-300 ease-in-out ${activeTab === 'dijual'
                   ? 'bg-victoria-red text-white shadow-lg scale-105'
-                  : 'bg-muted text-muted-foreground hover:bg-victoria-navy hover:text-victoria-red hover:shadow-md hover:scale-105'
+                  : 'bg-muted text-muted-foreground hover:bg-victoria-red/50 hover:text-white hover:shadow-md hover:scale-105'
                   }`}
               >
                 Dijual
@@ -80,7 +81,7 @@ const HeroSection = () => {
                 onClick={() => setActiveTab('disewa')}
                 className={`px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-300 ease-in-out ${activeTab === 'disewa'
                   ? 'bg-victoria-red text-white shadow-lg scale-105'
-                  : 'bg-muted text-muted-foreground hover:bg-victoria-navy hover:text-victoria-red hover:shadow-md hover:scale-105'
+                  : 'bg-muted text-muted-foreground hover:bg-victoria-red/50 hover:text-white hover:shadow-md hover:scale-105'
                   }`}
               >
                 Disewa

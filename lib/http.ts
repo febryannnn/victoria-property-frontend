@@ -13,11 +13,24 @@ export async function apiFetch<T>(
     cache: "no-store",
   });
 
-  if (!res.ok) {
-    // throw new Error("API error");
+  console.log("FETCHING:", `${API_URL}${path}`);
+  console.log("STATUS:", res.status);
+
+  const text = await res.text();
+
+  let data: any = null;
+
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    throw new Error(text || "Invalid JSON response");
   }
 
-  return res.json();
+  if (!res.ok) {
+    throw new Error(data?.message || "API Error");
+  }
+
+  return data;
 }
 
 export async function apiAdminFetch<T>(
@@ -34,12 +47,14 @@ export async function apiAdminFetch<T>(
       ...(options?.headers || {}),
     },
   });
+  const data = await res.json();
 
   if (!res.ok) {
-    throw new Error("API error");
+    throw new Error(data?.message || "API Error");
+
   }
 
-  return res.json();
+  return data;
 }
 
 export async function imageFetch<T>(
@@ -57,8 +72,19 @@ export async function imageFetch<T>(
   });
 
   if (!res.ok) {
-    throw new Error("Image upload failed");
+    const errorText = await res.text();
+    throw new Error(errorText || "Image Upload Failed");
   }
 
-  return res.json();
+  // ⬇️ penting: jangan pakai res.json() langsung
+  const text = await res.text();
+
+  // kalau backend tidak return body
+  if (!text) return null as T;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text as unknown as T;
+  }
 }

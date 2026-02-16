@@ -38,15 +38,21 @@ export async function createProperty(property: Property): Promise<Property> {
 }
 
 export async function updateProperty(id: number, property: Property): Promise<Property> {
-    return apiFetch<Property>(`api/properties/${id}`, {
+    return apiFetch<Property>(`/api/properties/${id}`, {
         method: "PUT",
         body: JSON.stringify(property),
     });
 }
 
-export async function deleteProperties(ids: number[]): Promise<void> {
-    return apiAdminFetch<void>("/properties", {
+export async function deleteProperty(id: number): Promise<void> {
+    return apiAdminFetch<void>(`/api/agent/properties/${id}`, {
         method: "DELETE",
-        body: JSON.stringify({ ids }),
     });
 }
+
+export async function getPropertyById(id: string | number) {
+    return apiFetch(`/api/properties/${id}`, {
+        method: "GET",
+    });
+}
+
