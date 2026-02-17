@@ -56,7 +56,7 @@ const Navbar = () => {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50">
+    <header className="fixed top-0 left-0 right-0 z-999999">
       {/* Top Bar */}
       <div className="bg-victoria-navy hidden md:block py-2 text-white">
         <div className="container-victoria flex justify-center items-center text-sm gap-6">
@@ -130,7 +130,7 @@ const Navbar = () => {
                   <Link href="/login">
                     <Button
                       variant="outline"
-                      className="border-victoria-navy text-victoria-navy hover:bg-victoria-navy hover:text-primary-foreground"
+                      className="border-victoria-navy text-victoria-navy hover:bg-victoria-red hover:text-primary-foreground"
                     >
                       Log In
                     </Button>

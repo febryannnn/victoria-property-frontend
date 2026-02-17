@@ -20,7 +20,8 @@ import {
     Mail,
     MessageCircle,
     ChevronRight,
-    Check
+    Check,
+    Bookmark
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -133,7 +134,7 @@ export default async function PropertyDetail({ params }: Props) {
                             Beranda
                         </a>
                         <ChevronRight className="w-4 h-4" />
-                        <a href="/properti" className="hover:text-victoria-red transition-colors">
+                        <a href="/properties" className="hover:text-victoria-red transition-colors">
                             Properti
                         </a>
                         <ChevronRight className="w-4 h-4" />
@@ -353,6 +354,10 @@ export default async function PropertyDetail({ params }: Props) {
                                         <Button variant="outline" className="w-full h-11">
                                             <Mail className="w-4 h-4 mr-2" />
                                             Email
+                                        </Button>
+                                        <Button variant="outline" className="w-full h-11">
+                                            <Bookmark className="w-4 h-4 mr-2" />
+                                            Tambah ke Favorit
                                         </Button>
                                     </CardContent>
                                 </Card>

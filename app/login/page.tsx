@@ -11,6 +11,7 @@ import AuthLayout from "@/components/auth/AuthLayout";
 import { login } from "@/lib/services/auth.service";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { FcGoogle } from "react-icons/fc";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -20,6 +21,13 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  async function handleGoogleLogin() {
+    // Jika backend sudah ada endpoint OAuth:
+    // window.location.href = "http://localhost:8080/api/auth/google";
+
+    // Jika belum, sementara:
+    toast.info("Google login belum dikonfigurasi");
+  }
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -116,21 +124,46 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Checkbox id="remember" />
-              <Label htmlFor="remember" className="text-sm font-normal">
-                Ingat saya
-              </Label>
+          <div className="flex flex-col gap-5">
+
+            {/* Remember & Forgot */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Checkbox id="remember" />
+                <Label htmlFor="remember" className="text-sm font-normal">
+                  Ingat saya
+                </Label>
+              </div>
+
+              <button
+                type="button"
+                className="text-sm text-victoria-red hover:underline"
+              >
+                Lupa Password?
+              </button>
             </div>
 
-            <button
+            {/* Divider */}
+            <div className="flex items-center gap-4">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-sm text-muted-foreground">atau</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+
+            {/* Google Login Button */}
+            <Button
               type="button"
-              className="text-sm text-victoria-red hover:underline"
+              variant="outline"
+              onClick={handleGoogleLogin}
+              className="w-full h-12 flex items-center justify-center gap-3 border-gray-200 hover:border-victoria-red hover:text-victoria-red transition-colors"
             >
-              Lupa Password?
-            </button>
+              <FcGoogle className="w-5 h-5" />
+              Masuk dengan Google
+            </Button>
+
           </div>
+          
+
 
           <Button className="w-full h-12 bg-victoria-red text-white">
             Masuk

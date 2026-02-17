@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import PropertyCard from "./PropertyCard";
+import PropertyCard from "../PropertyCard";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
@@ -95,13 +95,13 @@ const FeaturedListings = () => {
               <Link key={property.id}
                 href={`/property/${property.id}`}
                 className="block">
-              <div
-                key={property.id}
-                className="animate-fade-in"
-                style={{ animationDelay: `${index * 0.1}s` }}
-              >
-                <PropertyCard {...property} />
-              </div>
+                <div
+                  key={property.id}
+                  className="animate-fade-in"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <PropertyCard {...property} />
+                </div>
               </Link>
             ))}
           </div>

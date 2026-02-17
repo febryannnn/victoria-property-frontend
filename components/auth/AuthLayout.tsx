@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 
 export default function AuthLayout({
   children,
@@ -14,8 +15,20 @@ export default function AuthLayout({
   return (
     <div className="min-h-screen bg-victoria-light flex">
       {/* Left side */}
-      <div className="hidden lg:flex lg:w-1/2 bg-victoria-navy relative overflow-hidden text-white">
-        <div className="absolute inset-0 bg-gradient-to-br from-victoria-navy via-victoria-navy/95 to-victoria-red/20" />
+      <div className="hidden lg:flex lg:w-1/2 bg-victoria-red/50 relative overflow-hidden text-white">
+        {/* Background Image with low opacity */}
+        <div className="absolute inset-0">
+          <Image
+            src="/perumahan.jpg" // Update with your image path
+            alt="Background"
+            fill
+            className="object-cover opacity-30"
+            priority
+          />
+        </div>
+
+        {/* Gradient overlay to maintain red theme */}
+        <div className="absolute inset-0 bg-gradient-to-br from-victoria-maroon via-victoria-red/95 to-victoria-red/20" />
 
         <div className="relative z-10 flex flex-col justify-center px-16 text-primary-foreground">
           <Link href="/" className="flex items-center gap-3 mb-12">

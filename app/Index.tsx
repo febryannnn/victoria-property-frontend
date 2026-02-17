@@ -1,9 +1,9 @@
 import Navbar from '@/components/Navbar';
-import HeroSection from '@/components/HeroSection';
-import CategorySection from '@/components/CategorySection';
-import FeaturedListings from '@/components/FeaturedListings';
-import WhyChooseUs from '@/components/WhyChooseUs';
-import CTASection from '@/components/CTASection';
+import HeroSection from '@/components/home/HeroSection';
+import CategorySection from '@/components/home/CategorySection';
+import FeaturedListings from '@/components/home/FeaturedListings';
+import WhyChooseUs from '@/components/home/WhyChooseUs';
+import CTASection from '@/components/home/CTASection';
 import Footer from '@/components/Footer';
 
 const Index = () => {

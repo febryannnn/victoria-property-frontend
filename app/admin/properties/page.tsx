@@ -13,7 +13,9 @@ import {
     Filter,
     TrendingUp,
     Building2,
-    Sparkles
+    Sparkles,
+    ChevronLeft,
+    ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,11 +36,12 @@ import PropertyFormModal from "@/components/properties/PropertyFormModal";
 import DeletePropertyModal from "@/components/properties/DeletePropertyModal";
 import { Property } from "@/lib/types/property";
 import { getProperties, createProperty, updateProperty, deleteProperties } from "@/lib/services/dashboard.service";
-import { getAllProperties } from "@/lib/services/property.service";
+import { getAllProperties, getPropertiesCount } from "@/lib/services/property.service";
 
 export default function PropertiesPage() {
     const [properties, setProperties] = useState<Property[]>([]);
     const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
+    const [totalCount, setTotalCount] = useState(0);
     const [showFormModal, setShowFormModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
@@ -58,6 +61,10 @@ export default function PropertiesPage() {
     const [locationFilter, setLocationFilter] = useState("all");
     const [sortBy, setSortBy] = useState("newest");
 
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage] = useState(12);
+
     const activeFiltersCount = [
         propertyType !== "all",
         statusFilter !== "all",
@@ -68,18 +75,44 @@ export default function PropertiesPage() {
         locationFilter !== "all",
     ].filter(Boolean).length;
 
+    // Calculate total pages
+    const totalPages = Math.ceil(
+        (activeFiltersCount > 0 ? filteredProperties.length : totalCount) / itemsPerPage
+    );
+
     useEffect(() => {
-        fetchProperties();
+        fetchTotalCount();
     }, []);
 
     useEffect(() => {
-        applyFilters();
-    }, [properties, searchQuery, propertyType, statusFilter, priceRange, bedroomsFilter, bathroomsFilter, landAreaFilter, locationFilter, sortBy]);
+        fetchProperties();
+    }, [currentPage]);
+
+    useEffect(() => {
+        if (activeFiltersCount > 0) {
+            fetchProperties();
+        }
+    }, [searchQuery, propertyType, statusFilter, priceRange, bedroomsFilter, bathroomsFilter, landAreaFilter, locationFilter, sortBy]);
+
+    async function fetchTotalCount() {
+        try {
+            const count = await getPropertiesCount();
+            setTotalCount(count);
+        } catch (error) {
+            console.error("Failed to fetch properties count:", error);
+        }
+    }
 
     async function fetchProperties() {
         try {
             setLoading(true);
-            const res = await getAllProperties();
+
+            // If filters are active, fetch all for client-side filtering
+            const shouldFetchAll = activeFiltersCount > 0;
+            const pageToFetch = shouldFetchAll ? 1 : currentPage;
+            const limitToFetch = shouldFetchAll ? 1000 : itemsPerPage;
+
+            const res = await getAllProperties(pageToFetch, limitToFetch);
 
             const mapped: Property[] = res.data.map((item: any) => ({
                 id: item.id,
@@ -112,7 +145,12 @@ export default function PropertiesPage() {
             }));
 
             setProperties(mapped);
-            setFilteredProperties(mapped);
+
+            if (activeFiltersCount > 0) {
+                applyFiltersToProperties(mapped);
+            } else {
+                setFilteredProperties(mapped);
+            }
         } catch (error) {
             console.error("Failed to fetch properties:", error);
         } finally {
@@ -120,8 +158,8 @@ export default function PropertiesPage() {
         }
     }
 
-    const applyFilters = () => {
-        let filtered = [...properties];
+    const applyFiltersToProperties = (propertiesToFilter: Property[]) => {
+        let filtered = [...propertiesToFilter];
 
         if (searchQuery.trim()) {
             const query = searchQuery.toLowerCase();
@@ -218,12 +256,14 @@ export default function PropertiesPage() {
         setLandAreaFilter("all");
         setLocationFilter("all");
         setSortBy("newest");
+        setCurrentPage(1);
     };
 
     const handleCreateProperty = async (property: Property) => {
         try {
             await createProperty(property);
             await fetchProperties();
+            await fetchTotalCount();
         } catch (error) {
             console.error("Failed to create property:", error);
         }
@@ -244,6 +284,7 @@ export default function PropertiesPage() {
         try {
             await deleteProperties(ids);
             await fetchProperties();
+            await fetchTotalCount();
         } catch (error) {
             console.error("Failed to delete properties:", error);
         }
@@ -260,6 +301,63 @@ export default function PropertiesPage() {
         setFormMode("create");
         setShowFormModal(true);
     };
+
+    const handlePageChange = (page: number) => {
+        setCurrentPage(page);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    // Generate page numbers
+    const getPageNumbers = () => {
+        const pages = [];
+        const maxPagesToShow = 5;
+
+        if (totalPages <= maxPagesToShow) {
+            for (let i = 1; i <= totalPages; i++) {
+                pages.push(i);
+            }
+        } else {
+            if (currentPage <= 3) {
+                for (let i = 1; i <= 4; i++) {
+                    pages.push(i);
+                }
+                pages.push('...');
+                pages.push(totalPages);
+            } else if (currentPage >= totalPages - 2) {
+                pages.push(1);
+                pages.push('...');
+                for (let i = totalPages - 3; i <= totalPages; i++) {
+                    pages.push(i);
+                }
+            } else {
+                pages.push(1);
+                pages.push('...');
+                for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+                    pages.push(i);
+                }
+                pages.push('...');
+                pages.push(totalPages);
+            }
+        }
+
+        return pages;
+    };
+
+    // Get current page properties
+    const getCurrentPageProperties = () => {
+        if (activeFiltersCount > 0) {
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            return filteredProperties.slice(startIndex, endIndex);
+        } else {
+            return filteredProperties;
+        }
+    };
+
+    const currentProperties = getCurrentPageProperties();
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = Math.min(startIndex + itemsPerPage, activeFiltersCount > 0 ? filteredProperties.length : totalCount);
+    const displayedCount = activeFiltersCount > 0 ? filteredProperties.length : totalCount;
 
     if (loading) {
         return (
@@ -325,7 +423,7 @@ export default function PropertiesPage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm text-muted-foreground font-medium">Total Properties</p>
-                                    <p className="text-3xl font-bold text-[#5B0F1A] mt-1">{properties.length}</p>
+                                    <p className="text-3xl font-bold text-[#5B0F1A] mt-1">{totalCount}</p>
                                 </div>
                                 <div className="p-3 bg-[#5B0F1A]/10 rounded-lg">
                                     <Building2 className="h-6 w-6 text-[#5B0F1A]" />
@@ -370,8 +468,8 @@ export default function PropertiesPage() {
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-muted-foreground font-medium">Filtered Results</p>
-                                    <p className="text-3xl font-bold text-amber-600 mt-1">{filteredProperties.length}</p>
+                                    <p className="text-sm text-muted-foreground font-medium">Current Page</p>
+                                    <p className="text-3xl font-bold text-amber-600 mt-1">{currentProperties.length}</p>
                                 </div>
                                 <div className="p-3 bg-amber-100 rounded-lg">
                                     <Filter className="h-6 w-6 text-amber-600" />
@@ -518,7 +616,7 @@ export default function PropertiesPage() {
 
                                 <Button
                                     className="bg-gradient-to-r from-[#5B0F1A] to-[#7A1424] hover:from-[#7A1424] hover:to-[#5B0F1A] text-white"
-                                    onClick={applyFilters}
+                                    onClick={() => fetchProperties()}
                                 >
                                     Apply Filters
                                 </Button>
@@ -541,7 +639,12 @@ export default function PropertiesPage() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <p className="text-sm text-muted-foreground">
-                        Showing <span className="font-semibold text-foreground">{filteredProperties.length}</span> of <span className="font-semibold text-foreground">{properties.length}</span> properties
+                        Showing <span className="font-bold text-foreground">{startIndex + 1}-{endIndex}</span> of <span className="font-bold text-foreground">{displayedCount}</span> properties
+                        {activeFiltersCount > 0 && (
+                            <Badge variant="secondary" className="ml-2 bg-[#5B0F1A]/10 text-[#5B0F1A]">
+                                Filtered
+                            </Badge>
+                        )}
                     </p>
                 </div>
 
@@ -554,7 +657,6 @@ export default function PropertiesPage() {
                             <SelectItem value="newest">Newest First</SelectItem>
                             <SelectItem value="price-low">Price: Low to High</SelectItem>
                             <SelectItem value="price-high">Price: High to Low</SelectItem>
-                            <SelectItem value="popular">Most Popular</SelectItem>
                         </SelectContent>
                     </Select>
 
@@ -564,8 +666,8 @@ export default function PropertiesPage() {
                             size="sm"
                             onClick={() => setViewMode('grid')}
                             className={`h-9 w-9 p-0 ${viewMode === 'grid'
-                                    ? 'bg-white text-[#5B0F1A] shadow-sm'
-                                    : 'text-muted-foreground hover:text-foreground'
+                                ? 'bg-white text-[#5B0F1A] shadow-sm'
+                                : 'text-muted-foreground hover:text-foreground'
                                 }`}
                         >
                             <Grid3X3 className="h-4 w-4" />
@@ -575,8 +677,8 @@ export default function PropertiesPage() {
                             size="sm"
                             onClick={() => setViewMode('list')}
                             className={`h-9 w-9 p-0 ${viewMode === 'list'
-                                    ? 'bg-white text-[#5B0F1A] shadow-sm'
-                                    : 'text-muted-foreground hover:text-foreground'
+                                ? 'bg-white text-[#5B0F1A] shadow-sm'
+                                : 'text-muted-foreground hover:text-foreground'
                                 }`}
                         >
                             <List className="h-4 w-4" />
@@ -586,21 +688,21 @@ export default function PropertiesPage() {
             </div>
 
             {/* Property Grid/List */}
-            {filteredProperties.length === 0 ? (
+            {currentProperties.length === 0 ? (
                 <Card className="border-2 border-dashed border-gray-200">
                     <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                         <div className="p-4 bg-gray-100 rounded-full mb-4">
                             <Building2 className="h-10 w-10 text-gray-400" />
                         </div>
                         <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                            {properties.length === 0 ? "No properties yet" : "No properties match your filters"}
+                            {totalCount === 0 ? "No properties yet" : "No properties match your filters"}
                         </h3>
                         <p className="text-muted-foreground mb-6 max-w-sm">
-                            {properties.length === 0
+                            {totalCount === 0
                                 ? "Get started by creating your first property listing"
                                 : "Try adjusting your search criteria or filters"}
                         </p>
-                        {properties.length === 0 ? (
+                        {totalCount === 0 ? (
                             <Button
                                 onClick={handleCreate}
                                 className="bg-gradient-to-r from-[#5B0F1A] to-[#7A1424] hover:from-[#7A1424] hover:to-[#5B0F1A] text-white"
@@ -620,18 +722,75 @@ export default function PropertiesPage() {
                     </CardContent>
                 </Card>
             ) : (
-                <div className={`grid gap-6 ${viewMode === 'grid'
+                <>
+                    <div className={`grid gap-6 ${viewMode === 'grid'
                         ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
                         : 'grid-cols-1'
-                    }`}>
-                    {filteredProperties.map((property) => (
-                        <PropertyCard
-                            key={property.id}
-                            property={property}
-                            onEdit={handleEdit}
-                        />
-                    ))}
-                </div>
+                        }`}>
+                        {currentProperties.map((property) => (
+                            <PropertyCard
+                                key={property.id}
+                                property={property}
+                                onEdit={handleEdit}
+                            />
+                        ))}
+                    </div>
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                        <div className="flex justify-center items-center mt-12 gap-2">
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className="border-gray-200 hover:border-[#5B0F1A] hover:text-[#5B0F1A] disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
+
+                            {getPageNumbers().map((page, index) => (
+                                page === '...' ? (
+                                    <span key={`ellipsis-${index}`} className="px-2 text-gray-400">
+                                        ...
+                                    </span>
+                                ) : (
+                                    <Button
+                                        key={page}
+                                        variant={currentPage === page ? 'default' : 'outline'}
+                                        size="icon"
+                                        onClick={() => handlePageChange(page as number)}
+                                        className={
+                                            currentPage === page
+                                                ? 'bg-[#5B0F1A] hover:bg-[#7A1424] text-white'
+                                                : 'border-gray-200 hover:border-[#5B0F1A] hover:text-[#5B0F1A]'
+                                        }
+                                    >
+                                        {page}
+                                    </Button>
+                                )
+                            ))}
+
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                                className="border-gray-200 hover:border-[#5B0F1A] hover:text-[#5B0F1A] disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    )}
+
+                    {totalPages > 1 && (
+                        <div className="text-center mt-4">
+                            <p className="text-sm text-muted-foreground">
+                                Page <span className="font-semibold text-[#5B0F1A]">{currentPage}</span> of <span className="font-semibold text-[#5B0F1A]">{totalPages}</span>
+                            </p>
+                        </div>
+                    )}
+                </>
             )}
 
             {/* Modals */}

@@ -51,3 +51,11 @@ export interface DashboardStats {
     total_rentals: number;
     recent_properties: Property[];
 }
+
+export interface GetPropertiesCountResponse {
+    data: {
+        count: number;
+    };
+    message: string;
+    success: boolean;
+}

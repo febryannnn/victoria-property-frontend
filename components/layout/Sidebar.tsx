@@ -3,9 +3,20 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, PlusCircle, LayoutDashboard, Users, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
+
 
 export default function Sidebar() {
+    const router = useRouter()
     const pathname = usePathname();
+
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
+        router.push("/")
+
+    };
 
     const navItems = [
         {
@@ -55,7 +66,7 @@ export default function Sidebar() {
                 </nav>
             </div>
 
-            <button className="flex items-center gap-2 text-gray-300 hover:text-white cursor-pointer transition">
+            <button className="flex items-center gap-2 text-gray-300 hover:text-white cursor-pointer transition" onClick={handleLogout}>
                 <LogOut size={18} />
                 Logout
             </button>

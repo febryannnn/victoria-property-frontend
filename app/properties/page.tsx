@@ -37,7 +37,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
-import { getAllProperties } from '@/lib/services/property.service';
+import { getAllProperties, getPropertiesCount } from '@/lib/services/property.service';
 
 interface Property {
   id?: number;
@@ -73,6 +73,7 @@ interface Property {
 }
 
 const Properties = () => {
+
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -80,6 +81,7 @@ const Properties = () => {
   // Data states
   const [properties, setProperties] = useState<Property[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -92,9 +94,9 @@ const Properties = () => {
   const [locationFilter, setLocationFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
 
-  // Pagination states
+  // Pagination states - using server-side pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(8); // 8 items per page
+  const [itemsPerPage] = useState(12); // Items per page
 
   const activeFiltersCount = [
     propertyType !== 'all',
@@ -106,21 +108,41 @@ const Properties = () => {
     locationFilter !== 'all',
   ].filter(Boolean).length;
 
-  // Calculate pagination
-  const totalPages = Math.ceil(filteredProperties.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentProperties = filteredProperties.slice(startIndex, endIndex);
+  // Calculate total pages based on filtered results
+  const totalPages = Math.ceil(
+    (activeFiltersCount > 0 ? filteredProperties.length : totalCount) / itemsPerPage
+  );
 
-  // Fetch properties from API
+  // Fetch properties from API with pagination
   useEffect(() => {
     fetchProperties();
+  }, [currentPage]);
+
+  // Fetch total count on mount
+  useEffect(() => {
+    fetchTotalCount();
   }, []);
+
+  async function fetchTotalCount() {
+    try {
+      const count = await getPropertiesCount();
+      setTotalCount(count);
+    } catch (error) {
+      console.error("Failed to fetch properties count:", error);
+    }
+  }
 
   async function fetchProperties() {
     try {
       setLoading(true);
-      const res = await getAllProperties();
+
+      // If filters are active, we need to fetch all and filter client-side
+      // Otherwise, use server-side pagination
+      const shouldFetchAll = activeFiltersCount > 0;
+      const pageToFetch = shouldFetchAll ? 1 : currentPage;
+      const limitToFetch = shouldFetchAll ? 1000 : itemsPerPage;
+
+      const res = await getAllProperties(pageToFetch, limitToFetch);
       console.log(res);
 
       const mapped: Property[] = res.data.map((item: any) => ({
@@ -128,7 +150,7 @@ const Properties = () => {
         title: item.title,
         description: item.description,
         price: item.price,
-        status: item.sale_type === 'sale' ? 'sale' : 'rent', // Map sale_type to status
+        status: item.sale_type === 'jual' ? 'sale' : 'rent',
         province: item.province,
         regency: item.regency,
         district: item.district,
@@ -151,18 +173,23 @@ const Properties = () => {
           : null,
         property_type_id: item.property_type_id,
         user_id: item.user_id,
-        // Map to PropertyCard format
         image: item.cover_image_url
           ? `http://localhost:8080${item.cover_image_url}`
           : 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
         location: `${item.district}, ${item.regency}, ${item.province}`,
         area: item.land_area || item.building_area || 0,
-        priceLabel: item.sale_type === 'rent' ? '/bulan' : undefined,
+        priceLabel: item.sale_type === 'sewa' ? '/bulan' : undefined,
         isNew: item.created_at ? isNewProperty(item.created_at) : false,
       }));
 
       setProperties(mapped);
-      setFilteredProperties(mapped);
+
+      // Apply filters if any active
+      if (activeFiltersCount > 0) {
+        applyFiltersToProperties(mapped);
+      } else {
+        setFilteredProperties(mapped);
+      }
     } catch (error) {
       console.error("Failed to fetch properties:", error);
     } finally {
@@ -226,13 +253,20 @@ const Properties = () => {
     return pages;
   };
 
+  // Apply filters when filter values change
   useEffect(() => {
-    applyFilters();
-    setCurrentPage(1); // Reset to first page when filters change
-  }, [searchQuery, propertyType, statusFilter, priceRange, bedroomsFilter, bathroomsFilter, landAreaFilter, locationFilter, sortBy, properties]);
+    if (activeFiltersCount > 0) {
+      // Refetch all properties when filters change
+      fetchProperties();
+    } else {
+      // Reset to server-side pagination
+      setCurrentPage(1);
+      fetchProperties();
+    }
+  }, [searchQuery, propertyType, statusFilter, priceRange, bedroomsFilter, bathroomsFilter, landAreaFilter, locationFilter, sortBy]);
 
-  const applyFilters = () => {
-    let filtered = [...properties];
+  const applyFiltersToProperties = (propertiesToFilter: Property[]) => {
+    let filtered = [...propertiesToFilter];
 
     // Search filter
     if (searchQuery.trim()) {
@@ -344,9 +378,26 @@ const Properties = () => {
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
-    // Scroll to top when page changes
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Get current page properties
+  const getCurrentPageProperties = () => {
+    if (activeFiltersCount > 0) {
+      // Client-side pagination for filtered results
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      return filteredProperties.slice(startIndex, endIndex);
+    } else {
+      // Server-side pagination - show all properties from current fetch
+      return filteredProperties;
+    }
+  };
+
+  const currentProperties = getCurrentPageProperties();
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, activeFiltersCount > 0 ? filteredProperties.length : totalCount);
+  const displayedCount = activeFiltersCount > 0 ? filteredProperties.length : totalCount;
 
   if (loading) {
     return (
@@ -383,7 +434,7 @@ const Properties = () => {
               Daftar Properti
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Temukan properti impian Anda dari <span className="font-semibold text-victoria-navy">{properties.length}</span> listing tersedia
+              Temukan properti impian Anda dari <span className="font-semibold text-victoria-navy">{totalCount}</span> listing tersedia
             </p>
           </div>
 
@@ -396,19 +447,19 @@ const Properties = () => {
                   <TabsList className="grid w-full grid-cols-3 h-12 bg-gray-100 p-1">
                     <TabsTrigger
                       value="all"
-                      className="data-[state=active]:bg-victoria-red data-[state=active]:text-white hover:bg-victoria-red/10 hover:text-black transition-colors duration-200 rounded-md"
+                      className="data-[state=active]:bg-victoria-red data-[state=active]:text-white hover:bg-victoria-red/50 hover:text-white transition-colors duration-200 rounded-md"
                     >
                       Semua Properti
                     </TabsTrigger>
                     <TabsTrigger
                       value="sale"
-                      className="data-[state=active]:bg-victoria-maroon data-[state=active]:text-white hover:bg-victoria-red/10 hover:text-black transition-colors duration-200 rounded-md"
+                      className="data-[state=active]:bg-victoria-red data-[state=active]:text-white hover:bg-victoria-red/50 hover:text-white transition-colors duration-200 rounded-md"
                     >
                       Dijual
                     </TabsTrigger>
                     <TabsTrigger
                       value="rent"
-                      className="data-[state=active]:bg-victoria-maroon data-[state=active]:text-white hover:bg-victoria-red/10 hover:text-black transition-colors duration-200 rounded-md"
+                      className="data-[state=active]:bg-victoria-red data-[state=active]:text-white hover:bg-victoria-red/50 hover:text-white transition-colors duration-200 rounded-md"
                     >
                       Disewa
                     </TabsTrigger>
@@ -442,8 +493,8 @@ const Properties = () => {
                     variant={showFilters ? "default" : "outline"}
                     size="lg"
                     className={`h-14 px-6 ${showFilters
-                        ? 'bg-victoria-navy hover:bg-victoria-navy/90'
-                        : 'border-2 border-gray-200 hover:border-victoria-red hover:text-victoria-red'
+                      ? 'bg-victoria-navy hover:bg-victoria-navy/90'
+                      : 'border-2 border-gray-200 hover:border-victoria-red hover:text-victoria-red'
                       }`}
                     onClick={() => setShowFilters(!showFilters)}
                   >
@@ -578,7 +629,7 @@ const Properties = () => {
                           <label className="text-sm font-medium text-gray-700">&nbsp;</label>
                           <Button
                             className="w-full bg-victoria-red hover:bg-victoria-red/90 text-white h-10"
-                            onClick={applyFilters}
+                            onClick={() => fetchProperties()}
                           >
                             Terapkan Filter
                           </Button>
@@ -595,9 +646,9 @@ const Properties = () => {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
             <div className="flex items-center gap-4">
               <p className="text-gray-600">
-                Menampilkan <span className="font-bold text-victoria-navy text-lg">{startIndex + 1}-{Math.min(endIndex, filteredProperties.length)}</span> dari <span className="font-semibold text-gray-900">{filteredProperties.length}</span> properti
+                Menampilkan <span className="font-bold text-victoria-navy text-lg">{startIndex + 1}-{endIndex}</span> dari <span className="font-semibold text-gray-900">{displayedCount}</span> properti
               </p>
-              {filteredProperties.length < properties.length && (
+              {activeFiltersCount > 0 && (
                 <Badge variant="secondary" className="bg-victoria-red/10 text-victoria-red border-0">
                   Terfilter
                 </Badge>
@@ -613,7 +664,6 @@ const Properties = () => {
                   <SelectItem value="newest">Terbaru</SelectItem>
                   <SelectItem value="price-low">Harga: Rendah ke Tinggi</SelectItem>
                   <SelectItem value="price-high">Harga: Tinggi ke Rendah</SelectItem>
-                  <SelectItem value="popular">Paling Populer</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -623,8 +673,8 @@ const Properties = () => {
                   size="sm"
                   onClick={() => setViewMode('grid')}
                   className={`h-9 w-9 p-0 ${viewMode === 'grid'
-                      ? 'bg-white text-victoria-navy shadow-sm'
-                      : 'text-gray-500 hover:text-victoria-navy'
+                    ? 'bg-white text-victoria-navy shadow-sm'
+                    : 'text-gray-500 hover:text-victoria-navy'
                     }`}
                 >
                   <Grid3X3 className="w-5 h-5" />
@@ -634,8 +684,8 @@ const Properties = () => {
                   size="sm"
                   onClick={() => setViewMode('list')}
                   className={`h-9 w-9 p-0 ${viewMode === 'list'
-                      ? 'bg-white text-victoria-navy shadow-sm'
-                      : 'text-gray-500 hover:text-victoria-navy'
+                    ? 'bg-white text-victoria-navy shadow-sm'
+                    : 'text-gray-500 hover:text-victoria-navy'
                     }`}
                 >
                   <List className="w-5 h-5" />
@@ -645,7 +695,7 @@ const Properties = () => {
           </div>
 
           {/* Property Grid */}
-          {filteredProperties.length === 0 ? (
+          {currentProperties.length === 0 ? (
             <Card className="border-2 border-dashed border-gray-200">
               <CardContent className="flex flex-col items-center justify-center py-16 text-center">
                 <div className="p-4 bg-gray-100 rounded-full mb-4">
@@ -670,8 +720,8 @@ const Properties = () => {
           ) : (
             <>
               <div className={`grid gap-6 ${viewMode === 'grid'
-                  ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-                  : 'grid-cols-1'
+                ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+                : 'grid-cols-1'
                 }`}>
                 {currentProperties.map((property) => (
                   <a key={property.id} href={`/property/${property.id}`} className="block group">
@@ -691,7 +741,7 @@ const Properties = () => {
                 ))}
               </div>
 
-              {/* Working Pagination */}
+              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex justify-center items-center mt-12 gap-2">
                   <Button

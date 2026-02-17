@@ -2,6 +2,7 @@ import { apiFetch } from "../http";
 import { apiAdminFetch } from "../http"
 import { GetAllPropertyResponse } from "../types/property";
 import { Property, User, DashboardStats } from "../types/property";
+import { GetPropertiesCountResponse } from "../types/property";
 
 export function getAllProperties(prop_page = 1, prop_limit = 10) {
     return apiFetch<GetAllPropertyResponse>(
@@ -56,3 +57,13 @@ export async function getPropertyById(id: string | number) {
     });
 }
 
+export async function getPropertiesCount(): Promise<number> {
+    const res = await apiFetch<GetPropertiesCountResponse>(
+        "/api/properties/count",
+        {
+            method: "GET",
+        }
+    );
+
+    return res.data.count;
+}
