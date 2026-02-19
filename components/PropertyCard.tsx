@@ -49,66 +49,65 @@ const PropertyCard = ({
           alt={title}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
-        
+
         {/* Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        
+
         {/* Badges */}
-        <div className="absolute top-3 left-3 flex flex-wrap gap-2">
-          <span className={statusStyles[status]}>{statusText[status]}</span>
+        <div className="absolute top-2 left-2 flex flex-wrap gap-1">
+          <span className={`${statusStyles[status]} text-xs px-2 py-0.5`}>{statusText[status]}</span>
           {isNew && (
-            <span className="badge-status bg-victoria-yellow text-victoria-navy">Baru</span>
+            <span className="badge-status bg-victoria-yellow text-victoria-navy text-xs px-2 py-0.5">Baru</span>
           )}
         </div>
 
         {/* Favorite Button */}
         <button
           onClick={() => setIsLiked(!isLiked)}
-          className="absolute top-4 right-4 w-10 h-10 rounded-full bg-card/90 backdrop-blur-sm flex items-center justify-center shadow-md hover:scale-110 transition-transform"
+          className="absolute top-2 right-2 w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-card/90 backdrop-blur-sm flex items-center justify-center shadow-md hover:scale-110 transition-transform"
           aria-label="Add to favorites"
         >
           <Heart
-            className={`w-5 h-5 transition-colors ${
-              isLiked ? 'fill-victoria-red text-victoria-red' : 'text-muted-foreground'
-            }`}
+            className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors ${isLiked ? 'fill-victoria-red text-victoria-red' : 'text-muted-foreground'
+              }`}
           />
         </button>
       </div>
 
       {/* Content */}
-      <div className="p-5">
+      <div className="p-2.5 sm:p-4">
         {/* Price */}
-        <div className="mb-3">
-          <span className="text-2xl font-bold text-victoria-red">{price}</span>
+        <div className="mb-1.5 sm:mb-2">
+          <span className="text-base sm:text-xl font-bold text-victoria-red">{price}</span>
           {priceLabel && (
-            <span className="text-sm text-muted-foreground ml-1">{priceLabel}</span>
+            <span className="text-xs text-muted-foreground ml-1">{priceLabel}</span>
           )}
         </div>
 
         {/* Title */}
-        <h3 className="font-semibold text-lg text-foreground mb-2 line-clamp-1 group-hover:text-victoria-navy transition-colors">
+        <h3 className="font-semibold text-xs sm:text-base text-foreground mb-1 sm:mb-1.5 line-clamp-1 group-hover:text-victoria-navy transition-colors">
           {title}
         </h3>
 
         {/* Location */}
-        <div className="flex items-center gap-1 text-muted-foreground mb-4">
-          <MapPin className="w-4 h-4 flex-shrink-0" />
-          <span className="text-sm line-clamp-1">{location}</span>
+        <div className="flex items-center gap-1 text-muted-foreground mb-2 sm:mb-3">
+          <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" />
+          <span className="text-xs line-clamp-1">{location}</span>
         </div>
 
         {/* Features */}
-        <div className="flex items-center gap-4 pt-4 border-t border-border">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Bed className="w-4 h-4" />
-            <span className="text-sm font-medium">{bedrooms}</span>
+        <div className="flex items-center gap-2 sm:gap-3 pt-2 sm:pt-3 border-t border-border">
+          <div className="flex items-center gap-1 text-muted-foreground">
+            <Bed className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            <span className="text-xs font-medium">{bedrooms}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Bath className="w-4 h-4" />
-            <span className="text-sm font-medium">{bathrooms}</span>
+          <div className="flex items-center gap-1 text-muted-foreground">
+            <Bath className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            <span className="text-xs font-medium">{bathrooms}</span>
           </div>
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Maximize className="w-4 h-4" />
-            <span className="text-sm font-medium">{area} m²</span>
+          <div className="flex items-center gap-1 text-muted-foreground">
+            <Maximize className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            <span className="text-xs font-medium">{area}m²</span>
           </div>
         </div>
       </div>

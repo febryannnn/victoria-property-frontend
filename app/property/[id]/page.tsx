@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import PropertyMap from "@/components/PropertyMap";
+import PropertyImageGallery from "@/components/PropertyImageGallery";
 
 interface Props {
     params: Promise<{ id: string }>;
@@ -178,24 +179,11 @@ export default async function PropertyDetail({ params }: Props) {
 
                                 <CardContent className="space-y-6">
                                     {/* Main Image */}
-                                    <div className="relative rounded-xl overflow-hidden group">
-                                        <img
-                                            src={`http://localhost:8080${property.cover_image_url}`}
-                                            alt={property.title}
-                                            className="w-full h-[400px] md:h-[500px] object-cover transition-transform duration-500 group-hover:scale-105"
-                                        />
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                                        {/* Action Buttons */}
-                                        <div className="absolute top-4 right-4 flex gap-2">
-                                            <Button size="icon" variant="secondary" className="rounded-full backdrop-blur-sm bg-white/90 hover:bg-white">
-                                                <Share2 className="w-4 h-4" />
-                                            </Button>
-                                            <Button size="icon" variant="secondary" className="rounded-full backdrop-blur-sm bg-white/90 hover:bg-white">
-                                                <Heart className="w-4 h-4" />
-                                            </Button>
-                                        </div>
-                                    </div>
+                                    <PropertyImageGallery
+                                        propertyId={property.id}
+                                        coverImageUrl={property.cover_image_url}
+                                        title={property.title}
+                                    />
 
                                     {/* Price Section */}
                                     <Card className="bg-gradient-to-br from-victoria-red via-victoria-muted-red to-victoria-maroon text-white border-0">

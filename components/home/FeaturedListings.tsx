@@ -89,14 +89,12 @@ const FeaturedListings = () => {
         )}
 
         {/* Property Grid */}
+        {/* Property Grid */}
         {!loading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">
             {properties.map((property, index) => (
-              <Link key={property.id}
-                href={`/property/${property.id}`}
-                className="block">
+              <Link key={property.id} href={`/property/${property.id}`} className="block">
                 <div
-                  key={property.id}
                   className="animate-fade-in"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >

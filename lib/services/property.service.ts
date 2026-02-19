@@ -74,6 +74,12 @@ export async function getPropertyImages(propertyId: number) {
     );
 }
 
+export async function getPropertyImagesUser(propertyId: number) {
+    return apiFetch<{ data: { id: number; property_id: number; url: string }[] }>(
+        `/api/properties/${propertyId}/images`
+    );
+}
+
 export async function setCoverImage(propertyId: number, imageId: number) {
     return apiAdminFetch<void>(
         `/api/agent/properties/${propertyId}/images/${imageId}`,
