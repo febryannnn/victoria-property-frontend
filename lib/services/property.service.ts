@@ -40,7 +40,7 @@ export async function createProperty(property: Property): Promise<Property> {
 
 export async function updateProperty(id: number, property: Property): Promise<Property> {
     return apiAdminFetch<Property>(`/api/agent/properties/${id}`, {
-        method: "PUT",
+        method: "PATCH",
         body: JSON.stringify(property),
     });
 }

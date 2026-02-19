@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { createProperty, updateProperty } from "@/lib/services/property.service";
 import { uploadPropertyImages, getPropertyImages, setCoverImage, deletePropertyImage } from "@/lib/services/property.service";
 import { Star } from "lucide-react";
+import LocationPicker from "../LocationPicker";
 
 interface PropertyFormModalProps {
     open: boolean;
@@ -560,6 +561,18 @@ export default function PropertyFormModal({
                                     required
                                 />
                             </div>
+                            <LocationPicker
+                                province={formData.province}
+                                regency={formData.regency}
+                                district={formData.district}
+                                address={formData.address}
+                                latitude={formData.latitude}
+                                longitude={formData.longitude}
+                                onChange={(lat, lng) => {
+                                    handleChange("latitude", lat);
+                                    handleChange("longitude", lng);
+                                }}
+                            />
                         </div>
 
                         {/* Property Details */}
