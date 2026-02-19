@@ -24,6 +24,8 @@ export interface Property {
     cover_image_url: string;
     property_type_id: number;
     user_id: number;
+    latitude: number;
+    longitude: number;
 }
 
 export interface GetAllPropertyResponse {

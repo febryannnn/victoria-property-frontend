@@ -21,9 +21,10 @@ import {
 import { Property } from "@/lib/types/property";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
-import { uploadPropertyImages } from "@/lib/services/property.service";
 import { toast } from "sonner";
 import { createProperty, updateProperty } from "@/lib/services/property.service";
+import { uploadPropertyImages, getPropertyImages, setCoverImage, deletePropertyImage } from "@/lib/services/property.service";
+import { Star } from "lucide-react";
 
 interface PropertyFormModalProps {
     open: boolean;
@@ -69,24 +70,66 @@ export default function PropertyFormModal({
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const [createdPropertyId, setCreatedPropertyId] = useState<number | null>(null);
     const [uploading, setUploading] = useState(false);
+
+    interface PropertyImage {
+        id: number;
+        property_id: number;
+        url: string;
+    }
+    const [galleryImages, setGalleryImages] = useState<PropertyImage[]>([]);
+    const [loadingGallery, setLoadingGallery] = useState(false);
     
+    const fetchGalleryImages = async (propId: number) => {
+        try {
+            setLoadingGallery(true);
+            const res = await getPropertyImages(propId);
+            setGalleryImages(res.data ?? []);  // null → array kosong
+        } catch (err) {
+            // Kalau 404/error pun anggap kosong, bukan error fatal
+            setGalleryImages([]);
+        } finally {
+            setLoadingGallery(false);
+        }
+    };
+
+    const handleSetCover = async (imageId: number) => {
+        if (!createdPropertyId) return;
+        await toast.promise(
+            setCoverImage(createdPropertyId, imageId),
+            {
+                loading: "Setting cover...",
+                success: "Cover image updated!",
+                error: "Failed to set cover",
+            }
+        );
+        fetchGalleryImages(createdPropertyId);
+    };
+
+    const handleDeleteImage = async (imageId: number) => {
+        if (!createdPropertyId) return;
+        await toast.promise(
+            deletePropertyImage(createdPropertyId, imageId),
+            {
+                loading: "Deleting image...",
+                success: "Image deleted",
+                error: "Failed to delete image",
+            }
+        );
+        fetchGalleryImages(createdPropertyId);
+    };
 
     useEffect(() => {
         if (property && mode === "edit") {
             setFormData(property);
             setCreatedPropertyId(property.id!);
-
             if (property.cover_image_url) {
-                setImagePreviews([
-                    `http://localhost:8080${property.cover_image_url}`,
-                    
-                ]);
+                setImagePreviews([`http://localhost:8080${property.cover_image_url}`]);
             } else {
                 setImagePreviews([]);
             }
-
+            // Fetch gallery images
+            fetchGalleryImages(property.id!);
         } else {
-            // reset create mode
             setFormData({
                 title: "",
                 description: "",
@@ -111,64 +154,38 @@ export default function PropertyFormModal({
                 property_type_id: 1,
                 user_id: 1,
             });
-
             setCreatedPropertyId(null);
             setImagePreviews([]);
             setImageFiles([]);
+            setGalleryImages([]);
         }
     }, [property, mode, open]);
-
     const handleChange = (field: keyof Property, value: any) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
     };
 
-    // const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    //     const file = e.target.files?.[0];
-    //     if (file) {
-    //         setImageFile(file);
-
-    //         // Create preview
-    //         const reader = new FileReader();
-    //         reader.onloadend = () => {
-    //             setImagePreview(reader.result as string);
-    //         };
-    //         reader.readAsDataURL(file);
-    //     }
-    // };
-
-    // const handleRemoveImage = () => {
-    //     setImageFile(null);
-    //     setImagePreview(null);
-    //     setFormData((prev) => ({
-    //         ...prev,
-    //         cover_image_url: "null"
-    //     }));
-    // };
-
     const handleUploadImages = async () => {
-        if (!createdPropertyId) {
-            toast.error("Please create property first");
-            return;
-        }
-
-        if (imageFiles.length === 0) {
-            toast.error("No images selected");
-            return;
-        }
-
+        if (!createdPropertyId) { toast.error("Please create property first"); return; }
+        if (imageFiles.length === 0) { toast.error("No images selected"); return; }
         try {
             setUploading(true);
-
             await toast.promise(
                 uploadPropertyImages(createdPropertyId, imageFiles),
                 {
                     loading: "Uploading images...",
                     success: "Images uploaded successfully",
-                    error: "Failed to upload images",
+                    error: (err) => err?.message || "Failed to upload images",
                 }
             );
-
+            
             setImageFiles([]);
+            setImagePreviews(prev => {
+                // Hapus preview "New", sisakan yang "Existing"
+                const serverCount = (property?.cover_image_url && mode === 'edit') ? 1 : 0;
+                return prev.slice(0, serverCount);
+            });
+            // Refresh gallery
+            await fetchGalleryImages(createdPropertyId);
         } finally {
             setUploading(false);
         }
@@ -253,6 +270,78 @@ export default function PropertyFormModal({
                                         Upload Images
                                     </Label>
 
+                                    {/* Gallery & Cover Image Section */}
+                                    {createdPropertyId !== null && (
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <h3 className="font-semibold text-[#5B0F1A]">
+                                                    Gallery & Cover Image
+                                                </h3>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => fetchGalleryImages(createdPropertyId)}
+                                                    disabled={loadingGallery}
+                                                >
+                                                    {loadingGallery ? "Loading..." : "Refresh"}
+                                                </Button>
+                                            </div>
+
+                                            {loadingGallery ? (
+                                                <div className="flex justify-center py-8">
+                                                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#5B0F1A] border-t-transparent" />
+                                                </div>
+                                            ) : galleryImages.length === 0 ? (
+                                                <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center text-gray-400">
+                                                    <ImageIcon size={32} className="mx-auto mb-2 opacity-40" />
+                                                    <p className="text-sm">Belum ada foto. Upload foto terlebih dahulu.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="grid grid-cols-3 gap-3">
+                                                    {galleryImages.map((img) => {
+                                                        const isCover = formData.cover_image_url === img.url;
+                                                        return (
+                                                            <div key={img.id} className="relative group rounded-lg overflow-hidden border-2 border-transparent hover:border-[#5B0F1A] transition-all">
+                                                                <img
+                                                                    src={`http://localhost:8080${img.url}`}
+                                                                    className="h-28 w-full object-cover"
+                                                                />
+
+                                                                {/* Cover Badge */}
+                                                                {isCover && (
+                                                                    <span className="absolute top-1 left-1 bg-yellow-500 text-white text-xs px-1.5 py-0.5 rounded font-medium flex items-center gap-1">
+                                                                        <Star size={10} fill="white" /> Cover
+                                                                    </span>
+                                                                )}
+
+                                                                {/* Action Buttons - tampil saat hover */}
+                                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                                    {!isCover && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleSetCover(img.id)}
+                                                                            className="bg-yellow-500 hover:bg-yellow-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1"
+                                                                        >
+                                                                            <Star size={12} /> Set Cover
+                                                                        </button>
+                                                                    )}
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleDeleteImage(img.id)}
+                                                                        className="bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1 rounded flex items-center gap-1"
+                                                                    >
+                                                                        <X size={12} /> Hapus
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
                                     <Input
                                         id="image-upload"
                                         type="file"
@@ -260,14 +349,10 @@ export default function PropertyFormModal({
                                         accept="image/*"
                                         className="hidden"
                                         onChange={(e) => {
-                                            const files = e.target.files ? Array.from(e.target.files) : [];
-                                            setImageFiles(files);
-
-                                            const previewUrls = files.map((file) =>
-                                                URL.createObjectURL(file)
-                                            );
-
-                                            setImagePreviews(previewUrls);
+                                            const newFiles = e.target.files ? Array.from(e.target.files) : [];
+                                            setImageFiles((prev) => [...prev, ...newFiles]);
+                                            const newPreviews = newFiles.map((file) => URL.createObjectURL(file));
+                                            setImagePreviews((prev) => [...prev, ...newPreviews]);
                                         }}
                                     />
 
@@ -277,29 +362,47 @@ export default function PropertyFormModal({
 
                                     {/* Multiple Preview */}
                                     {imagePreviews.length > 0 && (
-                                        <div className="mt-6 grid grid-cols-3 gap-4">
-                                            {imagePreviews.map((src, index) => (
-                                                <div key={index} className="relative">
-                                                    <img
-                                                        src={src}
-                                                        className="h-24 w-full object-cover rounded-lg"
-                                                    />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            const newFiles = [...imageFiles];
-                                                            const newPreviews = [...imagePreviews];
-                                                            newFiles.splice(index, 1);
-                                                            newPreviews.splice(index, 1);
-                                                            setImageFiles(newFiles);
-                                                            setImagePreviews(newPreviews);
-                                                        }}
-                                                        className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1"
-                                                    >
-                                                        <X size={14} />
-                                                    </button>
-                                                </div>
-                                            ))}
+                                        <div className="mt-6 space-y-3">
+                                            <p className="text-sm font-medium text-gray-600">
+                                                {imagePreviews.length} foto • {imageFiles.length} foto baru dipilih
+                                            </p>
+                                            <div className="grid grid-cols-3 gap-4">
+                                                {imagePreviews.map((src, index) => {
+                                                    const serverPreviewCount = (property?.cover_image_url && mode === 'edit') ? 1 : 0;
+                                                    const isExisting = index < serverPreviewCount;
+                                                    return (
+                                                        <div key={index} className="relative">
+                                                            <img
+                                                                src={src}
+                                                                className="h-24 w-full object-cover rounded-lg"
+                                                            />
+                                                            {/* Badge Existing / New */}
+                                                            <span className={`absolute top-1 left-1 text-white text-xs px-1.5 py-0.5 rounded font-medium ${isExisting ? 'bg-blue-500' : 'bg-green-500'
+                                                                }`}>
+                                                                {isExisting ? 'Existing' : 'New'}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const newPreviews = [...imagePreviews];
+                                                                    newPreviews.splice(index, 1);
+                                                                    setImagePreviews(newPreviews);
+
+                                                                    const fileIndex = index - serverPreviewCount;
+                                                                    if (fileIndex >= 0) {
+                                                                        const newFiles = [...imageFiles];
+                                                                        newFiles.splice(fileIndex, 1);
+                                                                        setImageFiles(newFiles);
+                                                                    }
+                                                                }}
+                                                                className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1"
+                                                            >
+                                                                <X size={14} />
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
                                     )}
                                     

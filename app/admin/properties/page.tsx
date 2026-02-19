@@ -113,6 +113,7 @@ export default function PropertiesPage() {
             const limitToFetch = shouldFetchAll ? 1000 : itemsPerPage;
 
             const res = await getAllProperties(pageToFetch, limitToFetch);
+            console.log("API Response:", res);
 
             const mapped: Property[] = res.data.map((item: any) => ({
                 id: item.id,
@@ -143,6 +144,8 @@ export default function PropertiesPage() {
                 property_type_id: item.property_type_id,
                 user_id: item.user_id,
             }));
+
+            // console.log(`tes foto: http://localhost:8080${item.cover_image_url}`)
 
             setProperties(mapped);
 

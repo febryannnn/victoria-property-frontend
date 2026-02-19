@@ -27,7 +27,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import PropertyMap from "@/components/PropertyMap";
-import { getPropertyCoordinates } from "@/lib/geocoding";
 
 interface Props {
     params: Promise<{ id: string }>;
@@ -115,12 +114,10 @@ export default async function PropertyDetail({ params }: Props) {
     };
 
     // Get coordinates for the property
-    const mapCenter = await getPropertyCoordinates(
-        property.address,
-        property.district,
-        property.regency,
-        property.province
-    );
+    const mapCenter = {
+        lat: property.latitude,
+        lng: property.longitude,
+    };
 
     return (
         <div className="min-h-screen bg-victoria-light">

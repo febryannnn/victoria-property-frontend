@@ -71,15 +71,19 @@ export async function imageFetch<T>(
     body: formData,
   });
 
-  if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(errorText || "Image Upload Failed");
-  }
-
-  // ⬇️ penting: jangan pakai res.json() langsung
   const text = await res.text();
 
-  // kalau backend tidak return body
+  if (!res.ok) {
+    let message = "Image Upload Failed";
+    try {
+      const errorData = JSON.parse(text);
+      message = errorData?.message || message;
+    } catch {
+      message = text || message;
+    }
+    throw new Error(message);
+  }
+
   if (!text) return null as T;
 
   try {

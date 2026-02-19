@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect} from "react";
 import {
     Dialog,
     DialogContent,
@@ -13,9 +13,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Property } from "@/lib/types/property";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { deleteProperty } from "@/lib/services/property.service";
 import { toast } from "sonner";
 import { Search, X, AlertTriangle } from "lucide-react";
+import { GetPropertiesCountResponse } from "@/lib/types/property";
+import { deleteProperty, getAllProperties, getPropertiesCount } from "@/lib/services/property.service";
 
 interface DeletePropertyModalProps {
     open: boolean;
@@ -33,13 +34,40 @@ export default function DeletePropertyModal({
     const [selectedIds, setSelectedIds] = useState<number[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
+    const [totalCount, setTotalCount] = useState<number | null>(null);
+    const [allProperties, setAllProperties] = useState<Property[]>(properties);
+    const [loadingProperties, setLoadingProperties] = useState(false);
+
+    async function fetchAllProperties() {
+        try {
+            setLoadingProperties(true);
+            const res = await getAllProperties(1, 10000);
+            setAllProperties(Array.isArray(res.data) ? res.data : []);
+        } catch (error) {
+            toast.error("Failed to load properties");
+            setAllProperties([]);
+        } finally {
+            setLoadingProperties(false);
+        }
+    }
+
+    useEffect(() => {
+        if (open) {
+            fetchAllProperties();
+            fetchTotalCount();
+        } else {
+            // Reset saat modal ditutup
+            setSelectedIds([]);
+            setSearchQuery("");
+            setAllProperties([]);
+        }
+    }, [open]);
 
     // Filter properties based on search query
     const filteredProperties = useMemo(() => {
-        if (!searchQuery.trim()) return properties;
-
+        if (!searchQuery.trim()) return allProperties;
         const query = searchQuery.toLowerCase();
-        return properties.filter(
+        return allProperties.filter(
             (property) =>
                 property.title.toLowerCase().includes(query) ||
                 property.district?.toLowerCase().includes(query) ||
@@ -48,7 +76,7 @@ export default function DeletePropertyModal({
                 property.address?.toLowerCase().includes(query) ||
                 property.price.toString().includes(query)
         );
-    }, [properties, searchQuery]);
+    }, [allProperties, searchQuery]);
 
     const handleToggle = (id: number) => {
         setSelectedIds((prev) =>
@@ -75,6 +103,15 @@ export default function DeletePropertyModal({
             });
         }
     };
+
+    async function fetchTotalCount() {
+        try {
+            const count = await getPropertiesCount();
+            setTotalCount(count);
+        } catch (error) {
+            console.error("Failed to fetch properties count:", error);
+        }
+    }
 
     const handleDelete = async () => {
         if (selectedIds.length === 0) return;
@@ -168,7 +205,7 @@ export default function DeletePropertyModal({
                                 </span>
                             ) : (
                                 <span>
-                                    {filteredProperties.length} of {properties.length} properties
+                                    {filteredProperties.length} of {totalCount ?? properties.length} properties
                                 </span>
                             )}
                         </div>
@@ -176,7 +213,12 @@ export default function DeletePropertyModal({
 
                     {/* Properties List */}
                     <ScrollArea className="h-[400px] border rounded-lg p-4">
-                        {filteredProperties.length === 0 ? (
+                        {loadingProperties ? (
+                            <div className="flex flex-col items-center justify-center py-12">
+                                <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#5B0F1A] border-t-transparent mb-3" />
+                                <p className="text-sm text-muted-foreground">Loading properties...</p>
+                            </div>
+                        ) : filteredProperties.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-12 text-center">
                                 <div className="p-3 bg-gray-100 rounded-full mb-3">
                                     <Search className="h-8 w-8 text-gray-400" />

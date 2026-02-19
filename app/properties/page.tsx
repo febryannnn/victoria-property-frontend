@@ -85,6 +85,7 @@ const Properties = () => {
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState(''); 
   const [propertyType, setPropertyType] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priceRange, setPriceRange] = useState('all');
@@ -99,6 +100,7 @@ const Properties = () => {
   const [itemsPerPage] = useState(12); // Items per page
 
   const activeFiltersCount = [
+    appliedSearch !== '',
     propertyType !== 'all',
     statusFilter !== 'all',
     priceRange !== 'all',
@@ -253,24 +255,20 @@ const Properties = () => {
     return pages;
   };
 
-  // Apply filters when filter values change
   useEffect(() => {
     if (activeFiltersCount > 0) {
-      // Refetch all properties when filters change
       fetchProperties();
     } else {
-      // Reset to server-side pagination
       setCurrentPage(1);
       fetchProperties();
     }
-  }, [searchQuery, propertyType, statusFilter, priceRange, bedroomsFilter, bathroomsFilter, landAreaFilter, locationFilter, sortBy]);
-
+  }, [appliedSearch, propertyType, statusFilter, priceRange, bedroomsFilter, bathroomsFilter, landAreaFilter, locationFilter, sortBy]);
   const applyFiltersToProperties = (propertiesToFilter: Property[]) => {
     let filtered = [...propertiesToFilter];
 
     // Search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+    if (appliedSearch.trim()) {
+      const query = appliedSearch.toLowerCase();
       filtered = filtered.filter(
         (p) =>
           p.title.toLowerCase().includes(query) ||
@@ -365,6 +363,7 @@ const Properties = () => {
 
   const handleResetFilters = () => {
     setSearchQuery('');
+    setAppliedSearch('')
     setPropertyType('all');
     setStatusFilter('all');
     setPriceRange('all');
@@ -467,7 +466,9 @@ const Properties = () => {
                 </Tabs>
 
                 {/* Search Input Row */}
+                {/* Search Input Row */}
                 <div className="flex flex-col lg:flex-row gap-4">
+                  {/* Input - hapus pr-28, kembalikan ke normal, hapus tombol Cari di dalam */}
                   <div className="flex-1 relative group">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-victoria-red transition-colors" />
                     <Input
@@ -476,19 +477,33 @@ const Properties = () => {
                       className="pl-12 h-14 text-base border-gray-200 focus-visible:ring-victoria-red focus-visible:border-victoria-red bg-white shadow-sm"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') setAppliedSearch(searchQuery);
+                      }}
                     />
                     {searchQuery && (
                       <Button
                         variant="ghost"
                         size="sm"
                         className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 p-0 hover:bg-gray-100"
-                        onClick={() => setSearchQuery('')}
+                        onClick={() => { setSearchQuery(''); setAppliedSearch(''); }}
                       >
                         <X className="h-4 w-4" />
                       </Button>
                     )}
                   </div>
 
+                  {/* TAMBAH tombol Cari di luar input */}
+                  <Button
+                    size="lg"
+                    className="h-14 px-8 bg-victoria-red hover:bg-victoria-maroon text-white"
+                    onClick={() => setAppliedSearch(searchQuery)}
+                  >
+                    <Search className="w-4 h-4 mr-2" />
+                    Cari
+                  </Button>
+
+                  {/* Tombol Filter — tidak ada perubahan dari kode asli */}
                   <Button
                     variant={showFilters ? "default" : "outline"}
                     size="lg"

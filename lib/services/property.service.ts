@@ -13,7 +13,7 @@ export function getAllProperties(prop_page = 1, prop_limit = 10) {
     );
 }
 
-import { imageFetch } from "./image.service";
+import { imageFetch } from "../http";
 
 export async function uploadPropertyImages(
     propertyId: number,
@@ -39,7 +39,7 @@ export async function createProperty(property: Property): Promise<Property> {
 }
 
 export async function updateProperty(id: number, property: Property): Promise<Property> {
-    return apiFetch<Property>(`/api/properties/${id}`, {
+    return apiAdminFetch<Property>(`/api/agent/properties/${id}`, {
         method: "PUT",
         body: JSON.stringify(property),
     });
@@ -66,4 +66,24 @@ export async function getPropertiesCount(): Promise<number> {
     );
 
     return res.data.count;
+}
+
+export async function getPropertyImages(propertyId: number) {
+    return apiAdminFetch<{ data: { id: number; property_id: number; url: string }[] }>(
+        `/api/properties/${propertyId}/images`
+    );
+}
+
+export async function setCoverImage(propertyId: number, imageId: number) {
+    return apiAdminFetch<void>(
+        `/api/agent/properties/${propertyId}/images/${imageId}`,
+        { method: "PATCH" }
+    );
+}
+
+export async function deletePropertyImage(propertyId: number, imageId: number) {
+    return apiAdminFetch<void>(
+        `/api/agent/properties/${propertyId}/images/${imageId}`,
+        { method: "DELETE" }
+    );
 }
