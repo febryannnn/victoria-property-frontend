@@ -17,11 +17,11 @@ const Navbar = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const navLinks = [
-  { name: "Beranda", href: "/" },
-  { name: "Properti", href: "/properties" },
-  { name: "Tentang Kami", href: "/about" },
-  { name: "Kontak", href: "/contact" },
-];
+    { name: "Beranda", href: "/" },
+    { name: "Properti", href: "/properties" },
+    { name: "Tentang Kami", href: "/about" },
+    { name: "Kontak", href: "/contact" },
+  ];
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -145,13 +145,19 @@ const Navbar = () => {
               ) : (
                 <div className="flex items-center gap-4">
                   {/* Heart icon for favorites */}
-                  <Link
-                    href="/favorites"
-                    className="p-2 rounded-full hover:bg-muted transition-colors"
-                    aria-label="Favorites"
-                  >
-                    <Heart className={`w-5 h-5 text-victoria-red transition-colors ${pathname === "/favorites" ? "fill-victoria-red" : "hover:fill-victoria-red"}`} />
-                  </Link>
+                    <Link
+                      href="/favorites"
+                      className="flex items-center gap-2 p-2 rounded-full hover:text-victoria-red transition-colors"
+                      aria-label="Favorites"
+                    >
+                      <span>Favorites</span>
+                      <Heart
+                        className={`w-5 h-5 text-victoria-red transition-colors ${pathname === "/favorites"
+                            ? "fill-victoria-red"
+                            : "hover:fill-victoria-red"
+                          }`}
+                      />
+                    </Link>
 
                   <div className="relative" ref={dropdownRef}>
                     <button
@@ -162,29 +168,29 @@ const Navbar = () => {
                       <User className="w-5 h-5" />
                     </button>
 
-                  {showDropdown && (
-                    <div className="absolute right-0 mt-3 w-48 bg-white shadow-lg rounded-md border border-border z-50">
-                      <Link
-                        href="/profile"
-                        className="block px-4 py-2 hover:bg-muted"
-                      >
-                        Profile
-                      </Link>
-
-                      {user.role === 1 && (
+                    {showDropdown && (
+                      <div className="absolute right-0 mt-3 w-48 bg-white shadow-lg rounded-md border border-border z-50">
                         <Link
-                          href="/admin/dashboard"
+                          href="/profile"
                           className="block px-4 py-2 hover:bg-muted"
                         >
-                          Admin Panel
+                          Profile
                         </Link>
-                      )}
 
-                      <button
-                        onClick={handleLogout}
-                        className="w-full text-left px-4 py-2 hover:bg-muted text-red-500"
-                      >
-                        Logout
+                        {user.role === 1 && (
+                          <Link
+                            href="/admin/dashboard"
+                            className="block px-4 py-2 hover:bg-muted"
+                          >
+                            Admin Panel
+                          </Link>
+                        )}
+
+                        <button
+                          onClick={handleLogout}
+                          className="w-full text-left px-4 py-2 hover:bg-muted text-red-500"
+                        >
+                          Logout
                         </button>
                       </div>
                     )}

@@ -84,7 +84,7 @@ export default function NotFound() {
                                 Kembali ke Beranda
                             </Button>
                         </Link>
-                        <Link href="/properti">
+                        <Link href="/properties">
                             <Button variant="outline" className="h-12 px-8 border-slate-300 hover:border-red-800 hover:text-red-800 font-medium">
                                 <Home className="w-5 h-5 mr-2" />
                                 Lihat Semua Properti

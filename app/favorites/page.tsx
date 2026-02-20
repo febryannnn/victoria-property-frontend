@@ -30,16 +30,26 @@ export default function FavoritesPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
+    const fetchFavorites = async () => {
+      try {
+        const token = localStorage.getItem("token");
 
-    getUserFavorites()
-      .then(setFavorites)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+        if (!token) {
+          router.push("/login");
+          return;
+        }
+
+        const data = await getUserFavorites();
+        console.log("Data favorit yang diterima:", data);
+        setFavorites(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFavorites();
   }, []);
 
   if (loading) {
@@ -63,44 +73,46 @@ export default function FavoritesPage() {
       <Navbar />
       <main className="container-victoria pt-32 pb-16 min-h-screen">
         <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-victoria-navy flex items-center gap-2 mt-4">
-          <Heart className="fill-victoria-red text-victoria-red w-7 h-7" />
-          Properti Favorit Saya
-        </h1>
-        <p className="text-muted-foreground mt-1">{favorites.length} properti tersimpan</p>
-      </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-victoria-navy flex items-center gap-2 mt-4">
+            <Heart className="fill-victoria-red text-victoria-red w-7 h-7" />
+            Properti Favorit Saya
+          </h1>
+          <p className="text-muted-foreground mt-1">{favorites.length} properti tersimpan</p>
+        </div>
 
-      {favorites.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
-          <Heart className="w-16 h-16 text-muted-foreground/30" />
-          <p className="text-lg font-medium text-muted-foreground">Belum ada properti favorit</p>
-          <p className="text-sm text-muted-foreground">Tekan ikon hati pada properti untuk menyimpannya di sini</p>
-          <button
-            onClick={() => router.push("/properties")}
-            className="mt-2 px-6 py-2 bg-victoria-red text-white rounded-md hover:bg-victoria-red/90 transition-colors"
-          >
-            Jelajahi Properti
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-          {favorites.map((property) => (
-            <PropertyCard
-              key={property.id}
-              id={property.id}
-              image={property.cover_image_url || "/placeholder.jpg"}
-              title={property.title}
-              location={`${property.district}, ${property.regency}`}
-              price={formatPrice(property.price)}
-              bedrooms={property.bedrooms}
-              bathrooms={property.bathrooms}
-              area={property.building_area}
-              status={mapStatus(property.status)}
-              initialLiked={true} // ✅ semua card di sini sudah pasti di-like
-            />
-          ))}
-        </div>
-      )}
+        {favorites.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
+            <Heart className="w-16 h-16 text-muted-foreground/30" />
+            <p className="text-lg font-medium text-muted-foreground">Belum ada properti favorit</p>
+            <p className="text-sm text-muted-foreground">Tekan ikon hati pada properti untuk menyimpannya di sini</p>
+            <button
+              onClick={() => router.push("/properties")}
+              className="mt-2 px-6 py-2 bg-victoria-red text-white rounded-md hover:bg-victoria-red/90 transition-colors"
+            >
+              Jelajahi Properti
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            {favorites.map((property) => (
+              <a key={property.id} href={`/property/${property.id}`} className="block group">
+                <PropertyCard
+                  key={property.id}
+                  id={property.id}
+                  image={`http://localhost:8080${property.cover_image_url || "/placeholder.jpg"}`}
+                  title={property.title}
+                  location={`${property.district}, ${property.regency}`}
+                  price={formatPrice(property.price)}
+                  bedrooms={property.bedrooms}
+                  bathrooms={property.bathrooms}
+                  area={property.building_area}
+                  status={mapStatus(property.status)}
+                  initialLiked={true}
+                />
+              </a>
+            ))}
+          </div>
+        )}
       </main>
       <Footer />
     </>
