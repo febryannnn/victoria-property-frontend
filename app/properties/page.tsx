@@ -37,6 +37,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
+import { useSearchParams } from 'next/navigation';
 import { getAllProperties, getPropertiesCount, PropertyFilterParams } from '@/lib/services/property.service';
 import { getUserFavoriteIds } from '@/lib/services/favorites.service';
 
@@ -125,15 +126,19 @@ const Properties = () => {
   const [totalCount, setTotalCount] = useState(0);
 
   // Filter states (UI values)
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState(''); // sent to server after delay
-  const [propertyType, setPropertyType] = useState('all');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [priceRange, setPriceRange] = useState('all');
+  // Read initial filter values from URL query params
+  // Hero / NotFound pages navigate to /properties?keyword=...&sale_type=...&type=...&price=...&location=...
+  const searchParams = useSearchParams();
+
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('keyword') ?? '');
+  const [debouncedSearch, setDebouncedSearch] = useState(() => searchParams.get('keyword') ?? '');
+  const [propertyType, setPropertyType] = useState(() => searchParams.get('type') ?? 'all');
+  const [statusFilter, setStatusFilter] = useState(() => searchParams.get('sale_type') ?? 'all');
+  const [priceRange, setPriceRange] = useState(() => searchParams.get('price') ?? 'all');
   const [bedroomsFilter, setBedroomsFilter] = useState('all');
   const [bathroomsFilter, setBathroomsFilter] = useState('all');
   const [landAreaFilter, setLandAreaFilter] = useState('all');
-  const [locationFilter, setLocationFilter] = useState('all');
+  const [locationFilter, setLocationFilter] = useState(() => searchParams.get('location') ?? 'all');
   const [sortBy, setSortBy] = useState('newest');
 
   const [currentPage, setCurrentPage] = useState(1);
