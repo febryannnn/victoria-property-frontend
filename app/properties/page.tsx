@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Search,
   SlidersHorizontal,
@@ -37,7 +37,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
-import { getAllProperties, getPropertiesCount } from '@/lib/services/property.service';
+import { getAllProperties, getPropertiesCount, PropertyFilterParams } from '@/lib/services/property.service';
 import { getUserFavoriteIds } from '@/lib/services/favorites.service';
 
 interface Property {
@@ -118,14 +118,15 @@ const Properties = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [gridKey, setGridKey] = useState(0); // force re-animate grid on page change
+  const [gridKey, setGridKey] = useState(0);
 
+  // Server returns only the current page
   const [properties, setProperties] = useState<Property[]>([]);
-  const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
   const [totalCount, setTotalCount] = useState(0);
 
+  // Filter states (UI values)
   const [searchQuery, setSearchQuery] = useState('');
-  const [appliedSearch, setAppliedSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState(''); // sent to server after delay
   const [propertyType, setPropertyType] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priceRange, setPriceRange] = useState('all');
@@ -140,8 +141,17 @@ const Properties = () => {
 
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
 
+  // Debounce search — wait 400ms after user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1); // reset page on new search
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const activeFiltersCount = [
-    appliedSearch !== '',
+    debouncedSearch.trim() !== '',
     propertyType !== 'all',
     statusFilter !== 'all',
     priceRange !== 'all',
@@ -151,40 +161,72 @@ const Properties = () => {
     locationFilter !== 'all',
   ].filter(Boolean).length;
 
-  const totalPages = Math.ceil(
-    (activeFiltersCount > 0 ? filteredProperties.length : totalCount) / itemsPerPage
-  );
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
 
-  const { ref: headerRef, visible: headerVisible } = useScrollReveal(0.1);
   const { ref: resultsRef, visible: resultsVisible } = useScrollReveal(0.05);
   const { ref: paginationRef, visible: paginationVisible } = useScrollReveal(0.1);
 
-  useEffect(() => { fetchProperties(); }, [currentPage]);
-  useEffect(() => { fetchTotalCount(); fetchFavorites(); }, []);
+  // Build server params from current filter state
+  const buildServerParams = useCallback((): PropertyFilterParams => {
+    const params: PropertyFilterParams = {
+      page: currentPage,
+      limit: itemsPerPage,
+    };
+
+    if (debouncedSearch.trim()) params.keyword = debouncedSearch.trim();
+    if (statusFilter !== 'all') params.sale_type = statusFilter === 'sale' ? 'jual' : 'sewa';
+    if (propertyType !== 'all') params.property_type_id = parseInt(propertyType);
+    if (locationFilter !== 'all') params.regency = locationFilter;
+
+    // Price range → min/max
+    switch (priceRange) {
+      case '0-1m': params.max_price = 1_000_000_000; break;
+      case '1-3m': params.min_price = 1_000_000_000; params.max_price = 3_000_000_000; break;
+      case '3-5m': params.min_price = 3_000_000_000; params.max_price = 5_000_000_000; break;
+      case '5-10m': params.min_price = 5_000_000_000; params.max_price = 10_000_000_000; break;
+      case '10m+': params.min_price = 10_000_000_000; break;
+    }
+
+    // Land area → min/max
+    switch (landAreaFilter) {
+      case '0-100': params.max_land_area = 100; break;
+      case '100-200': params.min_land_area = 100; params.max_land_area = 200; break;
+      case '200-500': params.min_land_area = 200; params.max_land_area = 500; break;
+      case '500+': params.min_land_area = 500; break;
+    }
+
+    // Sort
+    switch (sortBy) {
+      case 'price-low': params.sort = 'price_asc'; break;
+      case 'price-high': params.sort = 'price_desc'; break;
+      default: params.sort = 'newest';
+    }
+
+    return params;
+  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, propertyType, locationFilter, priceRange, landAreaFilter, bathroomsFilter, bedroomsFilter, sortBy]);
+
+  // Fetch on every filter/page change
+  useEffect(() => {
+    fetchProperties();
+  }, [buildServerParams]);
+
+  useEffect(() => {
+    fetchFavorites();
+  }, []);
 
   async function fetchFavorites() {
     const ids = await getUserFavoriteIds();
     setFavoriteIds(ids);
   }
 
-  async function fetchTotalCount() {
-    try {
-      const count = await getPropertiesCount();
-      setTotalCount(count);
-    } catch (error) {
-      console.error("Failed to fetch properties count:", error);
-    }
-  }
-
   async function fetchProperties() {
     try {
       setLoading(true);
-      const shouldFetchAll = activeFiltersCount > 0;
-      const pageToFetch = shouldFetchAll ? 1 : currentPage;
-      const limitToFetch = shouldFetchAll ? 1000 : itemsPerPage;
-
-      const res = await getAllProperties(pageToFetch, limitToFetch);
+      const params = buildServerParams();
+      const res = await getAllProperties(params);
       const propertyData = res.data?.property || res.data || [];
+      // Total count from server response or separate field
+      const serverTotal = res.data?.total ?? res.total ?? null;
 
       const mapped: Property[] = propertyData.map((item: any) => ({
         id: item.id,
@@ -220,12 +262,17 @@ const Properties = () => {
       }));
 
       setProperties(mapped);
-      if (activeFiltersCount > 0) {
-        applyFiltersToProperties(mapped);
+
+      // Update total count: prefer server total, fallback to count endpoint
+      if (serverTotal !== null) {
+        setTotalCount(serverTotal);
       } else {
-        setFilteredProperties(mapped);
+        // fetch count with same filters (no page/limit)
+        const { page: _p, limit: _l, ...filterOnly } = params;
+        const count = await getPropertiesCount(filterOnly);
+        setTotalCount(count);
       }
-      // trigger re-animation
+
       setGridKey(k => k + 1);
     } catch (error) {
       console.error("Failed to fetch properties:", error);
@@ -266,70 +313,23 @@ const Properties = () => {
     return pages;
   };
 
-  useEffect(() => {
-    if (activeFiltersCount > 0) fetchProperties();
-    else { setCurrentPage(1); fetchProperties(); }
-  }, [appliedSearch, propertyType, statusFilter, priceRange, bedroomsFilter, bathroomsFilter, landAreaFilter, locationFilter, sortBy]);
 
-  const applyFiltersToProperties = (propertiesToFilter: Property[]) => {
-    let filtered = [...propertiesToFilter];
-    if (appliedSearch.trim()) {
-      const q = appliedSearch.toLowerCase();
-      filtered = filtered.filter(p =>
-        p.title.toLowerCase().includes(q) ||
-        p.location?.toLowerCase().includes(q) ||
-        p.address?.toLowerCase().includes(q) ||
-        p.province?.toLowerCase().includes(q) ||
-        p.regency?.toLowerCase().includes(q) ||
-        p.district?.toLowerCase().includes(q)
-      );
-    }
-    if (propertyType !== 'all') filtered = filtered.filter(p => p.property_type_id === parseInt(propertyType));
-    if (statusFilter !== 'all') filtered = filtered.filter(p => p.status === statusFilter);
-    if (priceRange !== 'all') filtered = filtered.filter(p => {
-      const price = parseFloat(p.price);
-      switch (priceRange) {
-        case '0-1m': return price < 1000000000;
-        case '1-3m': return price >= 1000000000 && price < 3000000000;
-        case '3-5m': return price >= 3000000000 && price < 5000000000;
-        case '5-10m': return price >= 5000000000 && price < 10000000000;
-        case '10m+': return price >= 10000000000;
-        default: return true;
-      }
-    });
-    if (bedroomsFilter !== 'all') { const b = parseInt(bedroomsFilter); filtered = filtered.filter(p => b === 4 ? p.bedrooms >= 4 : p.bedrooms === b); }
-    if (bathroomsFilter !== 'all') { const b = parseInt(bathroomsFilter); filtered = filtered.filter(p => b === 3 ? p.bathrooms >= 3 : p.bathrooms === b); }
-    if (landAreaFilter !== 'all') filtered = filtered.filter(p => {
-      const area = p.land_area || 0;
-      switch (landAreaFilter) {
-        case '0-100': return area < 100;
-        case '100-200': return area >= 100 && area < 200;
-        case '200-500': return area >= 200 && area < 500;
-        case '500+': return area >= 500;
-        default: return true;
-      }
-    });
-    if (locationFilter !== 'all') filtered = filtered.filter(p =>
-      p.province?.toLowerCase().includes(locationFilter.toLowerCase()) ||
-      p.regency?.toLowerCase().includes(locationFilter.toLowerCase())
-    );
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'newest': return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-        case 'price-low': return parseFloat(a.price) - parseFloat(b.price);
-        case 'price-high': return parseFloat(b.price) - parseFloat(a.price);
-        default: return 0;
-      }
-    });
-    setFilteredProperties(filtered);
-  };
+
+
 
   const handleResetFilters = () => {
-    setSearchQuery(''); setAppliedSearch('');
+    setSearchQuery('');
+    setDebouncedSearch('');
     setPropertyType('all'); setStatusFilter('all');
     setPriceRange('all'); setBedroomsFilter('all');
     setBathroomsFilter('all'); setLandAreaFilter('all');
     setLocationFilter('all'); setSortBy('newest');
+    setCurrentPage(1);
+  };
+
+  // When non-search filters change, reset to page 1
+  const handleFilterChange = (setter: (v: string) => void) => (value: string) => {
+    setter(value);
     setCurrentPage(1);
   };
 
@@ -338,18 +338,11 @@ const Properties = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const getCurrentPageProperties = () => {
-    if (activeFiltersCount > 0) {
-      const startIndex = (currentPage - 1) * itemsPerPage;
-      return filteredProperties.slice(startIndex, startIndex + itemsPerPage);
-    }
-    return filteredProperties;
-  };
-
-  const currentProperties = getCurrentPageProperties();
+  // Server returns exactly the current page — no slicing needed
+  const currentProperties = properties;
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, activeFiltersCount > 0 ? filteredProperties.length : totalCount);
-  const displayedCount = activeFiltersCount > 0 ? filteredProperties.length : totalCount;
+  const endIndex = Math.min(startIndex + properties.length, totalCount);
+  const displayedCount = totalCount;
 
   return (
     <>
@@ -430,13 +423,42 @@ const Properties = () => {
           transform: translateY(0);
         }
 
-        /* ── Pagination button hover ── */
+        /* ── Pagination ── */
         .page-btn {
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          border-radius: 8px;
+          border: 1.5px solid #e5e7eb;
+          background: white;
+          color: hsl(207,23%,28%);
+          font-size: 0.875rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
         }
-        .page-btn:not(:disabled):hover {
+        .page-btn:hover:not(:disabled) {
           transform: translateY(-2px);
           box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+          border-color: var(--color-victoria-red);
+          color: var(--color-victoria-red);
+        }
+        .page-btn.page-btn-active {
+          background: hsl(207,23%,28%);
+          color: white !important;
+          border-color: hsl(207,23%,28%);
+          box-shadow: 0 2px 8px rgba(35,51,66,0.25);
+        }
+        .page-btn.page-btn-active:hover {
+          background: hsl(207,23%,22%);
+          border-color: hsl(207,23%,22%);
+          color: white !important;
+        }
+        .page-btn:disabled {
+          opacity: 0.35;
+          cursor: not-allowed;
         }
 
         /* ── Spinner ── */
@@ -509,7 +531,7 @@ const Properties = () => {
                 <div className="space-y-6">
 
                   {/* Tabs */}
-                  <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
+                  <Tabs value={statusFilter} onValueChange={handleFilterChange(setStatusFilter)} className="w-full">
                     <TabsList className="grid w-full grid-cols-3 h-12 bg-gray-100 p-1">
                       {['all', 'sale', 'rent'].map((val, i) => (
                         <TabsTrigger
@@ -534,14 +556,14 @@ const Properties = () => {
                         className="pl-12 h-14 text-base border-gray-200 focus-visible:ring-victoria-red focus-visible:border-victoria-red bg-white shadow-sm"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') setAppliedSearch(searchQuery); }}
+
                       />
                       {searchQuery && (
                         <Button
                           variant="ghost"
                           size="sm"
                           className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 p-0 hover:bg-gray-100"
-                          onClick={() => { setSearchQuery(''); setAppliedSearch(''); }}
+                          onClick={() => setSearchQuery('')}
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -551,7 +573,6 @@ const Properties = () => {
                     <Button
                       size="lg"
                       className="h-14 px-8 bg-victoria-red hover:bg-victoria-maroon text-white hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200"
-                      onClick={() => setAppliedSearch(searchQuery)}
                     >
                       <Search className="w-4 h-4 mr-2" />
                       Cari
@@ -579,19 +600,19 @@ const Properties = () => {
                   <div className="flex flex-wrap gap-3">
                     {[
                       {
-                        value: propertyType, onChange: setPropertyType, width: 'w-[160px]',
+                        value: propertyType, onChange: handleFilterChange(setPropertyType), width: 'w-[160px]',
                         icon: <HomeIcon className="w-4 h-4 mr-2 text-victoria-red" />,
                         placeholder: 'Tipe Properti',
                         items: [['all', 'Semua Tipe'], ['1', 'Rumah'], ['2', 'Apartemen'], ['3', 'Ruko'], ['4', 'Tanah']]
                       },
                       {
-                        value: priceRange, onChange: setPriceRange, width: 'w-[180px]',
+                        value: priceRange, onChange: handleFilterChange(setPriceRange), width: 'w-[180px]',
                         icon: <DollarSign className="w-4 h-4 mr-2 text-victoria-red" />,
                         placeholder: 'Rentang Harga',
                         items: [['all', 'Semua Harga'], ['0-1m', 'Di bawah 1 M'], ['1-3m', '1 M - 3 M'], ['3-5m', '3 M - 5 M'], ['5-10m', '5 M - 10 M'], ['10m+', 'Di atas 10 M']]
                       },
                       {
-                        value: locationFilter, onChange: setLocationFilter, width: 'w-[160px]',
+                        value: locationFilter, onChange: handleFilterChange(setLocationFilter), width: 'w-[160px]',
                         icon: <MapPin className="w-4 h-4 mr-2 text-victoria-red" />,
                         placeholder: 'Lokasi',
                         items: [['all', 'Semua Lokasi'], ['jakarta', 'Jakarta'], ['tangerang', 'Tangerang'], ['bogor', 'Bogor'], ['bekasi', 'Bekasi'], ['depok', 'Depok']]
@@ -633,9 +654,9 @@ const Properties = () => {
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                           {[
-                            { label: 'Kamar Tidur', value: bedroomsFilter, onChange: setBedroomsFilter, items: [['all', 'Semua'], ['1', '1 Kamar'], ['2', '2 Kamar'], ['3', '3 Kamar'], ['4', '4+ Kamar']] },
-                            { label: 'Kamar Mandi', value: bathroomsFilter, onChange: setBathroomsFilter, items: [['all', 'Semua'], ['1', '1 Kamar Mandi'], ['2', '2 Kamar Mandi'], ['3', '3+ Kamar Mandi']] },
-                            { label: 'Luas Tanah', value: landAreaFilter, onChange: setLandAreaFilter, items: [['all', 'Semua Ukuran'], ['0-100', '0 - 100 m²'], ['100-200', '100 - 200 m²'], ['200-500', '200 - 500 m²'], ['500+', '500+ m²']] },
+                            { label: 'Kamar Tidur', value: bedroomsFilter, onChange: handleFilterChange(setBedroomsFilter), items: [['all', 'Semua'], ['1', '1 Kamar'], ['2', '2 Kamar'], ['3', '3 Kamar'], ['4', '4+ Kamar']] },
+                            { label: 'Kamar Mandi', value: bathroomsFilter, onChange: handleFilterChange(setBathroomsFilter), items: [['all', 'Semua'], ['1', '1 Kamar Mandi'], ['2', '2 Kamar Mandi'], ['3', '3+ Kamar Mandi']] },
+                            { label: 'Luas Tanah', value: landAreaFilter, onChange: handleFilterChange(setLandAreaFilter), items: [['all', 'Semua Ukuran'], ['0-100', '0 - 100 m²'], ['100-200', '100 - 200 m²'], ['200-500', '200 - 500 m²'], ['500+', '500+ m²']] },
                           ].map((f, i) => (
                             <div key={i} className="space-y-2" style={{ animationDelay: `${i * 60}ms` }}>
                               <label className="text-sm font-medium text-gray-700">{f.label}</label>
@@ -655,7 +676,7 @@ const Properties = () => {
                             <label className="text-sm font-medium text-gray-700">&nbsp;</label>
                             <Button
                               className="w-full bg-victoria-red hover:bg-victoria-red/90 text-white h-10 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200"
-                              onClick={() => fetchProperties()}
+                              onClick={() => { }} // filter is realtime, button is decorative
                             >
                               Terapkan Filter
                             </Button>
@@ -687,7 +708,7 @@ const Properties = () => {
               </div>
 
               <div className="flex items-center gap-3">
-                <Select value={sortBy} onValueChange={setSortBy}>
+                <Select value={sortBy} onValueChange={handleFilterChange(setSortBy)}>
                   <SelectTrigger className="w-[200px] border-gray-200 bg-white hover:border-victoria-red transition-colors">
                     <SelectValue placeholder="Urutkan" />
                   </SelectTrigger>
@@ -780,44 +801,39 @@ const Properties = () => {
                     className={`pagination-anim ${paginationVisible ? 'visible' : ''}`}
                   >
                     <div className="flex justify-center items-center mt-12 gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
+                      <button
                         onClick={() => handlePageChange(currentPage - 1)}
                         disabled={currentPage === 1}
-                        className="page-btn border-gray-200 hover:border-victoria-navy hover:text-victoria-navy disabled:opacity-40"
+                        className="page-btn"
+                        aria-label="Previous page"
                       >
                         <ChevronLeft className="h-4 w-4" />
-                      </Button>
+                      </button>
 
                       {getPageNumbers().map((page, index) =>
                         page === '...' ? (
                           <span key={`ellipsis-${index}`} className="px-2 text-gray-400">...</span>
                         ) : (
-                          <Button
+                          <button
                             key={page}
-                            variant={currentPage === page ? 'default' : 'outline'}
-                            size="icon"
                             onClick={() => handlePageChange(page as number)}
-                            className={`page-btn ${currentPage === page
-                              ? 'bg-victoria-navy hover:bg-victoria-navy/90 text-white shadow-md'
-                              : 'border-gray-200 hover:border-victoria-red hover:text-victoria-red'
-                              }`}
+                            className={`page-btn ${currentPage === page ? 'page-btn-active' : ''}`}
+                            aria-label={`Page ${page}`}
+                            aria-current={currentPage === page ? 'page' : undefined}
                           >
                             {page}
-                          </Button>
+                          </button>
                         )
                       )}
 
-                      <Button
-                        variant="outline"
-                        size="icon"
+                      <button
                         onClick={() => handlePageChange(currentPage + 1)}
                         disabled={currentPage === totalPages}
-                        className="page-btn border-gray-200 hover:border-victoria-navy hover:text-victoria-navy disabled:opacity-40"
+                        className="page-btn"
+                        aria-label="Next page"
                       >
                         <ChevronRight className="h-4 w-4" />
-                      </Button>
+                      </button>
                     </div>
 
                     <div className="text-center mt-4">

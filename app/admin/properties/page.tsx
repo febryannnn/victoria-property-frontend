@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
     Search,
     SlidersHorizontal,
@@ -39,8 +39,8 @@ import { getProperties, createProperty, updateProperty, deleteProperties } from 
 import { getAllProperties, getPropertiesCount } from "@/lib/services/property.service";
 
 export default function PropertiesPage() {
-    const [properties, setProperties] = useState<Property[]>([]);
-    const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
+    const [properties, setProperties] = useState<Property[]>([]);         // raw from API
+    const [filteredProperties, setFilteredProperties] = useState<Property[]>([]); // after client filter
     const [totalCount, setTotalCount] = useState(0);
     const [showFormModal, setShowFormModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -61,11 +61,13 @@ export default function PropertiesPage() {
     const [locationFilter, setLocationFilter] = useState("all");
     const [sortBy, setSortBy] = useState("newest");
 
-    // Pagination states
+    // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(12);
 
+    // ─── FIX 1: include searchQuery in activeFiltersCount ───
     const activeFiltersCount = [
+        searchQuery.trim() !== "",   // was missing before
         propertyType !== "all",
         statusFilter !== "all",
         priceRange !== "all",
@@ -75,125 +77,43 @@ export default function PropertiesPage() {
         locationFilter !== "all",
     ].filter(Boolean).length;
 
-    // Calculate total pages
     const totalPages = Math.ceil(
         (activeFiltersCount > 0 ? filteredProperties.length : totalCount) / itemsPerPage
     );
 
-    useEffect(() => {
-        fetchTotalCount();
-    }, []);
-
-    useEffect(() => {
-        fetchProperties();
-    }, [currentPage]);
-
-    useEffect(() => {
-        if (activeFiltersCount > 0) {
-            fetchProperties();
-        }
-    }, [searchQuery, propertyType, statusFilter, priceRange, bedroomsFilter, bathroomsFilter, landAreaFilter, locationFilter, sortBy]);
-
-    async function fetchTotalCount() {
-        try {
-            const count = await getPropertiesCount();
-            setTotalCount(count);
-        } catch (error) {
-            console.error("Failed to fetch properties count:", error);
-        }
-    }
-
-    async function fetchProperties() {
-        try {
-            setLoading(true);
-
-            // If filters are active, fetch all for client-side filtering
-            const shouldFetchAll = activeFiltersCount > 0;
-            const pageToFetch = shouldFetchAll ? 1 : currentPage;
-            const limitToFetch = shouldFetchAll ? 1000 : itemsPerPage;
-
-            const res = await getAllProperties(pageToFetch, limitToFetch);
-            console.log("API Response:", res);
-
-            const mapped: Property[] = res.data.map((item: any) => ({
-                id: item.id,
-                title: item.title,
-                description: item.description,
-                price: item.price,
-                status: item.status,
-                province: item.province,
-                regency: item.regency,
-                district: item.district,
-                address: item.address,
-                building_area: item.building_area,
-                land_area: item.land_area,
-                electricity: item.electricity,
-                water_source: item.water_source,
-                bedrooms: item.bedrooms,
-                bathrooms: item.bathrooms,
-                floors: item.floors,
-                garage: item.garage,
-                carport: item.carport,
-                certificate: item.certificate,
-                year_constructed: item.year_constructed,
-                sale_type: item.sale_type,
-                created_at: item.created_at,
-                cover_image_url: item.cover_image_url
-                    ? `http://localhost:8080${item.cover_image_url}`
-                    : null,
-                property_type_id: item.property_type_id,
-                user_id: item.user_id,
-            }));
-
-            // console.log(`tes foto: http://localhost:8080${item.cover_image_url}`)
-
-            setProperties(mapped);
-
-            if (activeFiltersCount > 0) {
-                applyFiltersToProperties(mapped);
-            } else {
-                setFilteredProperties(mapped);
-            }
-        } catch (error) {
-            console.error("Failed to fetch properties:", error);
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    const applyFiltersToProperties = (propertiesToFilter: Property[]) => {
-        let filtered = [...propertiesToFilter];
+    // ─── FIX 2: separate filter application from fetching ───
+    // applyFilters works on whatever `source` array is passed
+    const applyFilters = useCallback((source: Property[]) => {
+        let filtered = [...source];
 
         if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase();
-            filtered = filtered.filter(
-                (p) =>
-                    p.title.toLowerCase().includes(query) ||
-                    p.address?.toLowerCase().includes(query) ||
-                    p.province?.toLowerCase().includes(query) ||
-                    p.regency?.toLowerCase().includes(query) ||
-                    p.district?.toLowerCase().includes(query)
+            const q = searchQuery.toLowerCase();
+            filtered = filtered.filter(p =>
+                p.title.toLowerCase().includes(q) ||
+                p.address?.toLowerCase().includes(q) ||
+                p.province?.toLowerCase().includes(q) ||
+                p.regency?.toLowerCase().includes(q) ||
+                p.district?.toLowerCase().includes(q)
             );
         }
 
         if (propertyType !== "all") {
-            const typeId = parseInt(propertyType);
-            filtered = filtered.filter((p) => p.property_type_id === typeId);
+            filtered = filtered.filter(p => p.property_type_id === parseInt(propertyType));
         }
 
         if (statusFilter !== "all") {
-            filtered = filtered.filter((p) => p.status === statusFilter);
+            filtered = filtered.filter(p => p.status === statusFilter);
         }
 
         if (priceRange !== "all") {
-            filtered = filtered.filter((p) => {
+            filtered = filtered.filter(p => {
                 const price = parseFloat(p.price);
                 switch (priceRange) {
-                    case "0-1m": return price < 1000000000;
-                    case "1-3m": return price >= 1000000000 && price < 3000000000;
-                    case "3-5m": return price >= 3000000000 && price < 5000000000;
-                    case "5-10m": return price >= 5000000000 && price < 10000000000;
-                    case "10m+": return price >= 10000000000;
+                    case "0-1m": return price < 1_000_000_000;
+                    case "1-3m": return price >= 1_000_000_000 && price < 3_000_000_000;
+                    case "3-5m": return price >= 3_000_000_000 && price < 5_000_000_000;
+                    case "5-10m": return price >= 5_000_000_000 && price < 10_000_000_000;
+                    case "10m+": return price >= 10_000_000_000;
                     default: return true;
                 }
             });
@@ -201,20 +121,16 @@ export default function PropertiesPage() {
 
         if (bedroomsFilter !== "all") {
             const beds = parseInt(bedroomsFilter);
-            filtered = filtered.filter((p) =>
-                beds === 4 ? p.bedrooms >= 4 : p.bedrooms === beds
-            );
+            filtered = filtered.filter(p => beds === 4 ? p.bedrooms >= 4 : p.bedrooms === beds);
         }
 
         if (bathroomsFilter !== "all") {
             const baths = parseInt(bathroomsFilter);
-            filtered = filtered.filter((p) =>
-                baths === 3 ? p.bathrooms >= 3 : p.bathrooms === baths
-            );
+            filtered = filtered.filter(p => baths === 3 ? p.bathrooms >= 3 : p.bathrooms === baths);
         }
 
         if (landAreaFilter !== "all") {
-            filtered = filtered.filter((p) => {
+            filtered = filtered.filter(p => {
                 const area = p.land_area || 0;
                 switch (landAreaFilter) {
                     case "0-100": return area < 100;
@@ -227,7 +143,7 @@ export default function PropertiesPage() {
         }
 
         if (locationFilter !== "all") {
-            filtered = filtered.filter((p) =>
+            filtered = filtered.filter(p =>
                 p.province?.toLowerCase().includes(locationFilter.toLowerCase()) ||
                 p.regency?.toLowerCase().includes(locationFilter.toLowerCase())
             );
@@ -235,19 +151,107 @@ export default function PropertiesPage() {
 
         filtered.sort((a, b) => {
             switch (sortBy) {
-                case "newest":
-                    return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-                case "price-low":
-                    return parseFloat(a.price) - parseFloat(b.price);
-                case "price-high":
-                    return parseFloat(b.price) - parseFloat(a.price);
-                default:
-                    return 0;
+                case "newest": return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+                case "price-low": return parseFloat(a.price) - parseFloat(b.price);
+                case "price-high": return parseFloat(b.price) - parseFloat(a.price);
+                default: return 0;
             }
         });
 
         setFilteredProperties(filtered);
-    };
+        setCurrentPage(1); // reset to page 1 on every filter change
+    }, [searchQuery, propertyType, statusFilter, priceRange, bedroomsFilter, bathroomsFilter, landAreaFilter, locationFilter, sortBy]);
+
+    // ─── FIX 3: re-apply filters whenever filter state OR raw properties change ───
+    // This runs even when all filters are reset to 'all' (shows full list)
+    useEffect(() => {
+        if (properties.length > 0) {
+            applyFilters(properties);
+        }
+    }, [properties, applyFilters]);
+
+    // On mount: fetch count + all properties once
+    useEffect(() => {
+        fetchTotalCount();
+        fetchAllProperties();
+    }, []);
+
+    // ─── FIX 4: server-side pagination only when no filters active ───
+    useEffect(() => {
+        if (activeFiltersCount === 0) {
+            fetchPagedProperties(currentPage);
+        }
+    }, [currentPage]);
+
+    async function fetchTotalCount() {
+        try {
+            const count = await getPropertiesCount();
+            setTotalCount(count);
+        } catch (error) {
+            console.error("Failed to fetch count:", error);
+        }
+    }
+
+    // Fetch ALL for client-side filtering — called once on mount and after mutations
+    async function fetchAllProperties() {
+        try {
+            setLoading(true);
+            const res = await getAllProperties(1, 1000);
+            const mapped = mapProperties(res.data);
+            setProperties(mapped);
+            // applyFilters will fire via the useEffect above
+        } catch (error) {
+            console.error("Failed to fetch properties:", error);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    // Fetch one page for display when no filters active
+    async function fetchPagedProperties(page: number) {
+        try {
+            setLoading(true);
+            const res = await getAllProperties(page, itemsPerPage);
+            const mapped = mapProperties(res.data);
+            setFilteredProperties(mapped);
+        } catch (error) {
+            console.error("Failed to fetch page:", error);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    function mapProperties(data: any[]): Property[] {
+        return (data || []).map((item: any) => ({
+            id: item.id,
+            title: item.title,
+            description: item.description,
+            price: item.price,
+            status: item.status,
+            province: item.province,
+            regency: item.regency,
+            district: item.district,
+            address: item.address,
+            building_area: item.building_area,
+            land_area: item.land_area,
+            electricity: item.electricity,
+            water_source: item.water_source,
+            bedrooms: item.bedrooms,
+            bathrooms: item.bathrooms,
+            floors: item.floors,
+            garage: item.garage,
+            carport: item.carport,
+            certificate: item.certificate,
+            year_constructed: item.year_constructed,
+            sale_type: item.sale_type,
+            created_at: item.created_at,
+            cover_image_url: item.cover_image_url
+                ? `http://localhost:8080${item.cover_image_url}`
+                : null,
+            property_type_id: item.property_type_id,
+            user_id: item.user_id,
+        }));
+    }
 
     const handleResetFilters = () => {
         setSearchQuery("");
@@ -260,12 +264,13 @@ export default function PropertiesPage() {
         setLocationFilter("all");
         setSortBy("newest");
         setCurrentPage(1);
+        // With filters reset, applyFilters will show everything via useEffect
     };
 
     const handleCreateProperty = async (property: Property) => {
         try {
             await createProperty(property);
-            await fetchProperties();
+            await fetchAllProperties();
             await fetchTotalCount();
         } catch (error) {
             console.error("Failed to create property:", error);
@@ -276,7 +281,7 @@ export default function PropertiesPage() {
         try {
             if (property.id) {
                 await updateProperty(property.id, property);
-                await fetchProperties();
+                await fetchAllProperties();
             }
         } catch (error) {
             console.error("Failed to update property:", error);
@@ -286,7 +291,7 @@ export default function PropertiesPage() {
     const handleDeleteProperties = async (ids: number[]) => {
         try {
             await deleteProperties(ids);
-            await fetchProperties();
+            await fetchAllProperties();
             await fetchTotalCount();
         } catch (error) {
             console.error("Failed to delete properties:", error);
@@ -310,54 +315,29 @@ export default function PropertiesPage() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    // Generate page numbers
     const getPageNumbers = () => {
-        const pages = [];
-        const maxPagesToShow = 5;
-
-        if (totalPages <= maxPagesToShow) {
-            for (let i = 1; i <= totalPages; i++) {
-                pages.push(i);
-            }
+        const pages: (number | string)[] = [];
+        if (totalPages <= 5) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else if (currentPage <= 3) {
+            for (let i = 1; i <= 4; i++) pages.push(i);
+            pages.push('...'); pages.push(totalPages);
+        } else if (currentPage >= totalPages - 2) {
+            pages.push(1); pages.push('...');
+            for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
         } else {
-            if (currentPage <= 3) {
-                for (let i = 1; i <= 4; i++) {
-                    pages.push(i);
-                }
-                pages.push('...');
-                pages.push(totalPages);
-            } else if (currentPage >= totalPages - 2) {
-                pages.push(1);
-                pages.push('...');
-                for (let i = totalPages - 3; i <= totalPages; i++) {
-                    pages.push(i);
-                }
-            } else {
-                pages.push(1);
-                pages.push('...');
-                for (let i = currentPage - 1; i <= currentPage + 1; i++) {
-                    pages.push(i);
-                }
-                pages.push('...');
-                pages.push(totalPages);
-            }
+            pages.push(1); pages.push('...');
+            for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+            pages.push('...'); pages.push(totalPages);
         }
-
         return pages;
     };
 
-    // Get current page properties
-    const getCurrentPageProperties = () => {
-        if (activeFiltersCount > 0) {
-            const startIndex = (currentPage - 1) * itemsPerPage;
-            const endIndex = startIndex + itemsPerPage;
-            return filteredProperties.slice(startIndex, endIndex);
-        } else {
-            return filteredProperties;
-        }
-    };
+    // Client-side pagination slice when filters active
+    const currentProperties = activeFiltersCount > 0
+        ? filteredProperties.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+        : filteredProperties;
 
-    const currentProperties = getCurrentPageProperties();
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + itemsPerPage, activeFiltersCount > 0 ? filteredProperties.length : totalCount);
     const displayedCount = activeFiltersCount > 0 ? filteredProperties.length : totalCount;
@@ -471,7 +451,7 @@ export default function PropertiesPage() {
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm text-muted-foreground font-medium">Current Page</p>
+                                    <p className="text-sm text-muted-foreground font-medium">Showing</p>
                                     <p className="text-3xl font-bold text-amber-600 mt-1">{currentProperties.length}</p>
                                 </div>
                                 <div className="p-3 bg-amber-100 rounded-lg">
@@ -487,7 +467,7 @@ export default function PropertiesPage() {
             <Card className="shadow-md border-0 bg-gradient-to-br from-white to-gray-50/50">
                 <CardContent className="p-6 space-y-4">
                     <div className="flex flex-col lg:flex-row gap-4">
-                        {/* Search Input */}
+                        {/* Search Input — live filter on every keystroke */}
                         <div className="flex-1 relative group">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-[#5B0F1A] transition-colors" />
                             <Input
@@ -556,8 +536,22 @@ export default function PropertiesPage() {
                             >
                                 <SlidersHorizontal className="h-4 w-4 mr-2" />
                                 Advanced
+                                {activeFiltersCount > 0 && (
+                                    <Badge className="ml-2 bg-white text-[#5B0F1A] text-xs">{activeFiltersCount}</Badge>
+                                )}
                                 <ChevronDown className={`h-4 w-4 ml-2 transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`} />
                             </Button>
+
+                            {activeFiltersCount > 0 && (
+                                <Button
+                                    variant="ghost"
+                                    className="h-12 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                    onClick={handleResetFilters}
+                                >
+                                    <X className="h-4 w-4 mr-2" />
+                                    Reset ({activeFiltersCount})
+                                </Button>
+                            )}
                         </div>
                     </div>
 
@@ -617,12 +611,16 @@ export default function PropertiesPage() {
                                     </SelectContent>
                                 </Select>
 
-                                <Button
-                                    className="bg-gradient-to-r from-[#5B0F1A] to-[#7A1424] hover:from-[#7A1424] hover:to-[#5B0F1A] text-white"
-                                    onClick={() => fetchProperties()}
-                                >
-                                    Apply Filters
-                                </Button>
+                                <Select value={sortBy} onValueChange={setSortBy}>
+                                    <SelectTrigger className="bg-white">
+                                        <SelectValue placeholder="Sort by" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="newest">Newest First</SelectItem>
+                                        <SelectItem value="price-low">Price: Low to High</SelectItem>
+                                        <SelectItem value="price-high">Price: High to Low</SelectItem>
+                                    </SelectContent>
+                                </Select>
 
                                 <Button
                                     variant="outline"
@@ -642,7 +640,10 @@ export default function PropertiesPage() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <p className="text-sm text-muted-foreground">
-                        Showing <span className="font-bold text-foreground">{startIndex + 1}-{endIndex}</span> of <span className="font-bold text-foreground">{displayedCount}</span> properties
+                        Showing{' '}
+                        <span className="font-bold text-foreground">{startIndex + 1}-{endIndex}</span>{' '}
+                        of{' '}
+                        <span className="font-bold text-foreground">{displayedCount}</span> properties
                         {activeFiltersCount > 0 && (
                             <Badge variant="secondary" className="ml-2 bg-[#5B0F1A]/10 text-[#5B0F1A]">
                                 Filtered
@@ -668,10 +669,7 @@ export default function PropertiesPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => setViewMode('grid')}
-                            className={`h-9 w-9 p-0 ${viewMode === 'grid'
-                                ? 'bg-white text-[#5B0F1A] shadow-sm'
-                                : 'text-muted-foreground hover:text-foreground'
-                                }`}
+                            className={`h-9 w-9 p-0 ${viewMode === 'grid' ? 'bg-white text-[#5B0F1A] shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                         >
                             <Grid3X3 className="h-4 w-4" />
                         </Button>
@@ -679,10 +677,7 @@ export default function PropertiesPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => setViewMode('list')}
-                            className={`h-9 w-9 p-0 ${viewMode === 'list'
-                                ? 'bg-white text-[#5B0F1A] shadow-sm'
-                                : 'text-muted-foreground hover:text-foreground'
-                                }`}
+                            className={`h-9 w-9 p-0 ${viewMode === 'list' ? 'bg-white text-[#5B0F1A] shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
                         >
                             <List className="h-4 w-4" />
                         </Button>
@@ -714,10 +709,7 @@ export default function PropertiesPage() {
                                 Create First Property
                             </Button>
                         ) : (
-                            <Button
-                                onClick={handleResetFilters}
-                                variant="outline"
-                            >
+                            <Button onClick={handleResetFilters} variant="outline">
                                 <X className="h-4 w-4 mr-2" />
                                 Clear All Filters
                             </Button>
@@ -726,10 +718,7 @@ export default function PropertiesPage() {
                 </Card>
             ) : (
                 <>
-                    <div className={`grid gap-6 ${viewMode === 'grid'
-                        ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
-                        : 'grid-cols-1'
-                        }`}>
+                    <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1'}`}>
                         {currentProperties.map((property) => (
                             <PropertyCard
                                 key={property.id}
@@ -741,57 +730,54 @@ export default function PropertiesPage() {
 
                     {/* Pagination */}
                     {totalPages > 1 && (
-                        <div className="flex justify-center items-center mt-12 gap-2">
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => handlePageChange(currentPage - 1)}
-                                disabled={currentPage === 1}
-                                className="border-gray-200 hover:border-[#5B0F1A] hover:text-[#5B0F1A] disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <ChevronLeft className="h-4 w-4" />
-                            </Button>
+                        <>
+                            <div className="flex justify-center items-center mt-12 gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => handlePageChange(currentPage - 1)}
+                                    disabled={currentPage === 1}
+                                    className="border-gray-200 hover:border-[#5B0F1A] hover:text-[#5B0F1A] disabled:opacity-50"
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Button>
 
-                            {getPageNumbers().map((page, index) => (
-                                page === '...' ? (
-                                    <span key={`ellipsis-${index}`} className="px-2 text-gray-400">
-                                        ...
-                                    </span>
-                                ) : (
-                                    <Button
-                                        key={page}
-                                        variant={currentPage === page ? 'default' : 'outline'}
-                                        size="icon"
-                                        onClick={() => handlePageChange(page as number)}
-                                        className={
-                                            currentPage === page
+                                {getPageNumbers().map((page, index) =>
+                                    page === '...' ? (
+                                        <span key={`ellipsis-${index}`} className="px-2 text-gray-400">...</span>
+                                    ) : (
+                                        <Button
+                                            key={page}
+                                            variant={currentPage === page ? 'default' : 'outline'}
+                                            size="icon"
+                                            onClick={() => handlePageChange(page as number)}
+                                            className={currentPage === page
                                                 ? 'bg-[#5B0F1A] hover:bg-[#7A1424] text-white'
-                                                : 'border-gray-200 hover:border-[#5B0F1A] hover:text-[#5B0F1A]'
-                                        }
-                                    >
-                                        {page}
-                                    </Button>
-                                )
-                            ))}
+                                                : 'border-gray-200 hover:border-[#5B0F1A] hover:text-[#5B0F1A]'}
+                                        >
+                                            {page}
+                                        </Button>
+                                    )
+                                )}
 
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => handlePageChange(currentPage + 1)}
-                                disabled={currentPage === totalPages}
-                                className="border-gray-200 hover:border-[#5B0F1A] hover:text-[#5B0F1A] disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <ChevronRight className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    )}
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={() => handlePageChange(currentPage + 1)}
+                                    disabled={currentPage === totalPages}
+                                    className="border-gray-200 hover:border-[#5B0F1A] hover:text-[#5B0F1A] disabled:opacity-50"
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                            </div>
 
-                    {totalPages > 1 && (
-                        <div className="text-center mt-4">
-                            <p className="text-sm text-muted-foreground">
-                                Page <span className="font-semibold text-[#5B0F1A]">{currentPage}</span> of <span className="font-semibold text-[#5B0F1A]">{totalPages}</span>
-                            </p>
-                        </div>
+                            <div className="text-center mt-4">
+                                <p className="text-sm text-muted-foreground">
+                                    Page <span className="font-semibold text-[#5B0F1A]">{currentPage}</span> of{' '}
+                                    <span className="font-semibold text-[#5B0F1A]">{totalPages}</span>
+                                </p>
+                            </div>
+                        </>
                     )}
                 </>
             )}

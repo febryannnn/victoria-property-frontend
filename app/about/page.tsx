@@ -7,6 +7,8 @@ import agentPhoto from '@/assets/vp-agent-photo.jpeg';
 import housePhoto from '@/assets/perumahan.jpg';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
+import AgentCarousel from '@/components/AgentCarousel';
+
 
 /* ─────────────────────────────────────────────
    Counter hook — counts up when element enters viewport
@@ -189,33 +191,6 @@ const About = () => {
     },
   ];
 
-  const team = [
-    {
-      name: 'Budi Santoso',
-      position: 'CEO & Founder',
-      image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400',
-      description: 'Berpengalaman lebih dari 15 tahun di industri properti Indonesia.',
-    },
-    {
-      name: 'Siti Rahayu',
-      position: 'Director of Sales',
-      image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400',
-      description: 'Ahli dalam strategi penjualan dan pengembangan bisnis properti.',
-    },
-    {
-      name: 'Ahmad Wijaya',
-      position: 'Head of Operations',
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
-      description: 'Mengelola operasional dan memastikan layanan berkualitas tinggi.',
-    },
-    {
-      name: 'Diana Putri',
-      position: 'Marketing Manager',
-      image: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400',
-      description: 'Spesialis pemasaran digital dan branding properti.',
-    },
-  ];
-
   return (
     <>
       {/* ── Global keyframe styles ── */}
@@ -346,26 +321,7 @@ const About = () => {
                 </Reveal>
 
                 <Reveal direction="right" delay={150}>
-                  <div className="relative">
-                    <div
-                      className="aspect-[4/5] rounded-2xl overflow-hidden"
-                      style={{
-                        boxShadow: '0 32px 64px -16px rgba(0,0,0,0.25)',
-                      }}
-                    >
-                      <Image src={agentPhoto} alt="Agent" fill className="object-cover" />
-                    </div>
-                    {/* Badge with its own bounce-in */}
-                    <div
-                      className="absolute -bottom-6 -left-6 bg-victoria-red text-white p-6 rounded-xl shadow-xl"
-                      style={{
-                        animation: 'heroFadeUp 0.7s cubic-bezier(0.34,1.56,0.64,1) 0.6s both',
-                      }}
-                    >
-                      <p className="text-4xl font-bold">10+</p>
-                      <p className="text-sm">Tahun Melayani Indonesia</p>
-                    </div>
-                  </div>
+                  <AgentCarousel />
                 </Reveal>
               </div>
             </div>
@@ -401,74 +357,119 @@ const About = () => {
             </div>
           </section>
 
-          {/* ── Team ── */}
-          <section className="section-padding">
-            <div className="container-victoria">
-              <Reveal direction="up" className="text-center mb-12">
-                <span className="text-victoria-red font-semibold uppercase tracking-wider text-sm">
-                  Tim Kami
-                </span>
-                <h2 className="text-3xl md:text-4xl font-bold text-victoria-navy mt-2 mb-4">
-                  Dipimpin oleh Para Ahli
-                </h2>
-                <p className="text-muted-foreground max-w-2xl mx-auto">
-                  Tim manajemen kami terdiri dari profesional berpengalaman yang berkomitmen
-                  untuk memberikan layanan terbaik kepada setiap klien.
-                </p>
-              </Reveal>
+          {/* ── CTA Section ── */}
+          <section className="cta-section relative overflow-hidden text-white">
+            {/* Background image */}
+            <div
+              className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+              style={{
+                backgroundImage:
+                  "url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1920&q=80')",
+              }}
+            />
 
-              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                {team.map((member, i) => (
-                  <Reveal key={i} delay={i * 100} direction="up">
-                    <div className="group">
-                      <div className="relative aspect-[3/4] rounded-xl overflow-hidden mb-4">
-                        <img
-                          src={member.image}
-                          alt={member.name}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-victoria-navy/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <div className="absolute bottom-4 left-4 right-4 transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
-                          <p className="text-white text-sm">{member.description}</p>
-                        </div>
-                      </div>
-                      <h3 className="font-semibold text-lg text-victoria-navy">{member.name}</h3>
-                      <p className="text-muted-foreground">{member.position}</p>
-                    </div>
-                  </Reveal>
-                ))}
-              </div>
-            </div>
-          </section>
+            {/* Gradient overlay — top: dark navy tint, bottom: exact victoria-navy so it bleeds into footer */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "linear-gradient(to bottom, rgba(35,51,66,0.82) 0%, rgba(35,51,66,0.72) 40%, rgba(35,51,66,0.92) 75%, hsl(207,23%,28%) 100%)",
+              }}
+            />
 
-          {/* ── CTA ── */}
-          <section className="section-padding bg-victoria-navy text-white">
-            <div className="container-victoria text-center">
+            {/* Decorative red accent line */}
+            <div
+              className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-1 rounded-full"
+              style={{ background: "var(--color-victoria-red)" }}
+            />
+
+            {/* Content */}
+            <div className="container-victoria relative z-10 py-14 text-center">
               <Reveal direction="up">
-                <h2 className="text-3xl md:text-4xl font-bold mb-6">
-                  Siap Menemukan Properti Impian Anda?
+                {/* Label */}
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/20 bg-white/10 backdrop-blur-sm text-sm font-medium mb-6 text-white/90">
+                  <span
+                    className="w-2 h-2 rounded-full animate-pulse"
+                    style={{ background: "var(--color-victoria-red)" }}
+                  />
+                  Konsultasi Gratis
+                </div>
+
+                <h2 className="text-3xl md:text-5xl font-bold mb-6 leading-tight">
+                  Siap Menemukan{" "}
+                  <span style={{ color: "var(--color-victoria-yellow)" }}>
+                    Properti Impian
+                  </span>{" "}
+                  Anda?
                 </h2>
-                <p className="text-white/80 mb-8 max-w-2xl mx-auto">
+
+                <p className="text-white/75 mb-10 max-w-2xl mx-auto text-lg leading-relaxed">
                   Hubungi tim kami hari ini untuk konsultasi gratis dan mulai perjalanan
-                  Anda menuju hunian impian.
+                  Anda menuju hunian impian bersama Victoria Property.
                 </p>
+
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <a
                     href="/properties"
-                    className="btn-victoria-primary hover:scale-105 transition-transform duration-200"
+                    className="inline-flex items-center justify-center px-8 py-3.5 rounded-xl font-semibold text-white transition-all duration-200 hover:-translate-y-1 hover:shadow-xl"
+                    style={{
+                      background: "var(--color-victoria-red)",
+                      boxShadow: "0 4px 24px rgba(179,40,40,0.35)",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.boxShadow =
+                        "0 8px 32px rgba(179,40,40,0.55)";
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLElement).style.boxShadow =
+                        "0 4px 24px rgba(179,40,40,0.35)";
+                    }}
                   >
                     Lihat Properti
                   </a>
                   <a
                     href="/contact"
-                    className="btn-victoria border-2 border-white text-white hover:bg-white hover:text-victoria-navy hover:scale-105 transition-all duration-200"
+                    className="inline-flex items-center justify-center px-8 py-3.5 rounded-xl font-semibold border-2 border-white/60 text-white backdrop-blur-sm transition-all duration-200 hover:border-white hover:bg-white hover:text-victoria-yellow hover:-translate-y-1 hover:shadow-xl"
+                    style={{ background: "rgba(255,255,255,0.08)" }}
                   >
                     Hubungi Kami
                   </a>
                 </div>
+
+                {/* Stats row */}
+                <div className="mt-10 pt-8 border-t border-white/15 grid grid-cols-3 gap-6 max-w-lg mx-auto">
+                  {[
+                    { value: "5000+", label: "Properti Terjual" },
+                    { value: "10+", label: "Tahun Pengalaman" },
+                    { value: "98%", label: "Kepuasan Klien" },
+                  ].map((stat, i) => (
+                    <div key={i}>
+                      <p
+                        className="text-2xl font-bold"
+                        style={{ color: "var(--color-victoria-yellow)" }}
+                      >
+                        {stat.value}
+                      </p>
+                      <p className="text-xs text-white/60 mt-1">{stat.label}</p>
+                    </div>
+                  ))}
+                </div>
               </Reveal>
             </div>
+
+            {/* Bottom fade to footer — seamless blend */}
+            <div
+              className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none"
+              style={{
+                background:
+                  "linear-gradient(to bottom, transparent, hsl(207,23%,28%))",
+              }}
+            />
           </section>
+
+          {/* Footer langsung di bawah tanpa gap — warna nyambung */}
+
+          {/* Footer langsung di bawah tanpa gap — warna nyambung */}
         </main>
 
         <Footer />
