@@ -2,46 +2,28 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-    Search,
-    SlidersHorizontal,
-    Grid3X3,
-    List,
-    ChevronDown,
-    PlusCircle,
-    Trash2,
-    X,
-    Filter,
-    TrendingUp,
-    Building2,
-    Sparkles,
-    ChevronLeft,
-    ChevronRight
+    Search, SlidersHorizontal, Grid3X3, List, ChevronDown,
+    PlusCircle, Trash2, X, Filter, TrendingUp, Building2,
+    Sparkles, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import {
-    Card,
-    CardContent,
-} from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent } from "@/components/ui/card";
 import PropertyCard from "@/components/properties/PropertyCard";
 import PropertyFormModal from "@/components/properties/PropertyFormModal";
 import DeletePropertyModal from "@/components/properties/DeletePropertyModal";
 import { Property } from "@/lib/types/property";
-import { getProperties, createProperty, updateProperty, deleteProperties } from "@/lib/services/dashboard.service";
-import { getAllProperties, getPropertiesCount } from "@/lib/services/property.service";
+import { createProperty, updateProperty, deleteProperties } from "@/lib/services/dashboard.service";
+import { getAllProperties, getPropertiesCount, PropertyFilterParams } from "@/lib/services/property.service";
 
 export default function PropertiesPage() {
-    const [properties, setProperties] = useState<Property[]>([]);         // raw from API
-    const [filteredProperties, setFilteredProperties] = useState<Property[]>([]); // after client filter
+    // Server returns only the current page
+    const [properties, setProperties] = useState<Property[]>([]);
     const [totalCount, setTotalCount] = useState(0);
+    const [statsCount, setStatsCount] = useState({ total: 0, forSale: 0 });
+
     const [showFormModal, setShowFormModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
@@ -50,6 +32,7 @@ export default function PropertiesPage() {
 
     // Filter states
     const [searchQuery, setSearchQuery] = useState("");
+    const [debouncedSearch, setDebouncedSearch] = useState("");
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [showFilters, setShowFilters] = useState(false);
     const [propertyType, setPropertyType] = useState("all");
@@ -61,13 +44,20 @@ export default function PropertiesPage() {
     const [locationFilter, setLocationFilter] = useState("all");
     const [sortBy, setSortBy] = useState("newest");
 
-    // Pagination
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(12);
 
-    // ─── FIX 1: include searchQuery in activeFiltersCount ───
+    // Debounce search 400ms
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setDebouncedSearch(searchQuery);
+            setCurrentPage(1);
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [searchQuery]);
+
     const activeFiltersCount = [
-        searchQuery.trim() !== "",   // was missing before
+        debouncedSearch.trim() !== "",
         propertyType !== "all",
         statusFilter !== "all",
         priceRange !== "all",
@@ -77,145 +67,72 @@ export default function PropertiesPage() {
         locationFilter !== "all",
     ].filter(Boolean).length;
 
-    const totalPages = Math.ceil(
-        (activeFiltersCount > 0 ? filteredProperties.length : totalCount) / itemsPerPage
-    );
+    const totalPages = Math.ceil(totalCount / itemsPerPage);
 
-    // ─── FIX 2: separate filter application from fetching ───
-    // applyFilters works on whatever `source` array is passed
-    const applyFilters = useCallback((source: Property[]) => {
-        let filtered = [...source];
+    const buildServerParams = useCallback((): PropertyFilterParams => {
+        const params: PropertyFilterParams = { page: currentPage, limit: itemsPerPage };
 
-        if (searchQuery.trim()) {
-            const q = searchQuery.toLowerCase();
-            filtered = filtered.filter(p =>
-                p.title.toLowerCase().includes(q) ||
-                p.address?.toLowerCase().includes(q) ||
-                p.province?.toLowerCase().includes(q) ||
-                p.regency?.toLowerCase().includes(q) ||
-                p.district?.toLowerCase().includes(q)
-            );
+        if (debouncedSearch.trim()) params.keyword = debouncedSearch.trim();
+        if (statusFilter !== "all") params.sale_type = statusFilter === "sale" ? "jual" : "sewa";
+        if (propertyType !== "all") params.property_type_id = parseInt(propertyType);
+        if (locationFilter !== "all") params.regency = locationFilter;
+
+        switch (priceRange) {
+            case "0-1m": params.max_price = 1_000_000_000; break;
+            case "1-3m": params.min_price = 1_000_000_000; params.max_price = 3_000_000_000; break;
+            case "3-5m": params.min_price = 3_000_000_000; params.max_price = 5_000_000_000; break;
+            case "5-10m": params.min_price = 5_000_000_000; params.max_price = 10_000_000_000; break;
+            case "10m+": params.min_price = 10_000_000_000; break;
+        }
+        switch (landAreaFilter) {
+            case "0-100": params.max_land_area = 100; break;
+            case "100-200": params.min_land_area = 100; params.max_land_area = 200; break;
+            case "200-500": params.min_land_area = 200; params.max_land_area = 500; break;
+            case "500+": params.min_land_area = 500; break;
+        }
+        switch (sortBy) {
+            case "price-low": params.sort = "price_asc"; break;
+            case "price-high": params.sort = "price_desc"; break;
+            default: params.sort = "newest";
         }
 
-        if (propertyType !== "all") {
-            filtered = filtered.filter(p => p.property_type_id === parseInt(propertyType));
-        }
+        return params;
+    }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, propertyType, locationFilter, priceRange, landAreaFilter, bathroomsFilter, bedroomsFilter, sortBy]);
 
-        if (statusFilter !== "all") {
-            filtered = filtered.filter(p => p.status === statusFilter);
-        }
+    // Fetch page on every filter/page change
+    useEffect(() => { fetchProperties(); }, [buildServerParams]);
 
-        if (priceRange !== "all") {
-            filtered = filtered.filter(p => {
-                const price = parseFloat(p.price);
-                switch (priceRange) {
-                    case "0-1m": return price < 1_000_000_000;
-                    case "1-3m": return price >= 1_000_000_000 && price < 3_000_000_000;
-                    case "3-5m": return price >= 3_000_000_000 && price < 5_000_000_000;
-                    case "5-10m": return price >= 5_000_000_000 && price < 10_000_000_000;
-                    case "10m+": return price >= 10_000_000_000;
-                    default: return true;
-                }
-            });
-        }
+    // Fetch unfiltered stats once on mount
+    useEffect(() => { fetchStats(); }, []);
 
-        if (bedroomsFilter !== "all") {
-            const beds = parseInt(bedroomsFilter);
-            filtered = filtered.filter(p => beds === 4 ? p.bedrooms >= 4 : p.bedrooms === beds);
-        }
+    async function fetchStats() {
+        try {
+            const [total, forSale] = await Promise.all([
+                getPropertiesCount(),
+                getPropertiesCount({ sale_type: "jual" }),
+            ]);
+            setStatsCount({ total, forSale });
+        } catch (e) { console.error(e); }
+    }
 
-        if (bathroomsFilter !== "all") {
-            const baths = parseInt(bathroomsFilter);
-            filtered = filtered.filter(p => baths === 3 ? p.bathrooms >= 3 : p.bathrooms === baths);
-        }
+    async function fetchProperties() {
+        try {
+            setLoading(true);
+            const params = buildServerParams();
+            const res = await getAllProperties(params);
+            const propertyData = res.data?.property || res.data || [];
+            const serverTotal = res.data?.total ?? res.total ?? null;
 
-        if (landAreaFilter !== "all") {
-            filtered = filtered.filter(p => {
-                const area = p.land_area || 0;
-                switch (landAreaFilter) {
-                    case "0-100": return area < 100;
-                    case "100-200": return area >= 100 && area < 200;
-                    case "200-500": return area >= 200 && area < 500;
-                    case "500+": return area >= 500;
-                    default: return true;
-                }
-            });
-        }
+            setProperties(mapProperties(propertyData));
 
-        if (locationFilter !== "all") {
-            filtered = filtered.filter(p =>
-                p.province?.toLowerCase().includes(locationFilter.toLowerCase()) ||
-                p.regency?.toLowerCase().includes(locationFilter.toLowerCase())
-            );
-        }
-
-        filtered.sort((a, b) => {
-            switch (sortBy) {
-                case "newest": return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-                case "price-low": return parseFloat(a.price) - parseFloat(b.price);
-                case "price-high": return parseFloat(b.price) - parseFloat(a.price);
-                default: return 0;
+            if (serverTotal !== null) {
+                setTotalCount(serverTotal);
+            } else {
+                const { page: _p, limit: _l, ...filterOnly } = params;
+                setTotalCount(await getPropertiesCount(filterOnly));
             }
-        });
-
-        setFilteredProperties(filtered);
-        setCurrentPage(1); // reset to page 1 on every filter change
-    }, [searchQuery, propertyType, statusFilter, priceRange, bedroomsFilter, bathroomsFilter, landAreaFilter, locationFilter, sortBy]);
-
-    // ─── FIX 3: re-apply filters whenever filter state OR raw properties change ───
-    // This runs even when all filters are reset to 'all' (shows full list)
-    useEffect(() => {
-        if (properties.length > 0) {
-            applyFilters(properties);
-        }
-    }, [properties, applyFilters]);
-
-    // On mount: fetch count + all properties once
-    useEffect(() => {
-        fetchTotalCount();
-        fetchAllProperties();
-    }, []);
-
-    // ─── FIX 4: server-side pagination only when no filters active ───
-    useEffect(() => {
-        if (activeFiltersCount === 0) {
-            fetchPagedProperties(currentPage);
-        }
-    }, [currentPage]);
-
-    async function fetchTotalCount() {
-        try {
-            const count = await getPropertiesCount();
-            setTotalCount(count);
-        } catch (error) {
-            console.error("Failed to fetch count:", error);
-        }
-    }
-
-    // Fetch ALL for client-side filtering — called once on mount and after mutations
-    async function fetchAllProperties() {
-        try {
-            setLoading(true);
-            const res = await getAllProperties(1, 1000);
-            const mapped = mapProperties(res.data);
-            setProperties(mapped);
-            // applyFilters will fire via the useEffect above
-        } catch (error) {
-            console.error("Failed to fetch properties:", error);
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    // Fetch one page for display when no filters active
-    async function fetchPagedProperties(page: number) {
-        try {
-            setLoading(true);
-            const res = await getAllProperties(page, itemsPerPage);
-            const mapped = mapProperties(res.data);
-            setFilteredProperties(mapped);
-        } catch (error) {
-            console.error("Failed to fetch page:", error);
+        } catch (e) {
+            console.error("Failed to fetch properties:", e);
         } finally {
             setLoading(false);
         }
@@ -245,111 +162,64 @@ export default function PropertiesPage() {
             year_constructed: item.year_constructed,
             sale_type: item.sale_type,
             created_at: item.created_at,
-            cover_image_url: item.cover_image_url
-                ? `http://localhost:8080${item.cover_image_url}`
-                : null,
+            cover_image_url: item.cover_image_url ? `http://localhost:8080${item.cover_image_url}` : null,
             property_type_id: item.property_type_id,
             user_id: item.user_id,
         }));
     }
 
-    const handleResetFilters = () => {
-        setSearchQuery("");
-        setPropertyType("all");
-        setStatusFilter("all");
-        setPriceRange("all");
-        setBedroomsFilter("all");
-        setBathroomsFilter("all");
-        setLandAreaFilter("all");
-        setLocationFilter("all");
-        setSortBy("newest");
+    const handleFilterChange = (setter: (v: string) => void) => (value: string) => {
+        setter(value);
         setCurrentPage(1);
-        // With filters reset, applyFilters will show everything via useEffect
+    };
+
+    const handleResetFilters = () => {
+        setSearchQuery(""); setDebouncedSearch("");
+        setPropertyType("all"); setStatusFilter("all");
+        setPriceRange("all"); setBedroomsFilter("all");
+        setBathroomsFilter("all"); setLandAreaFilter("all");
+        setLocationFilter("all"); setSortBy("newest");
+        setCurrentPage(1);
     };
 
     const handleCreateProperty = async (property: Property) => {
-        try {
-            await createProperty(property);
-            await fetchAllProperties();
-            await fetchTotalCount();
-        } catch (error) {
-            console.error("Failed to create property:", error);
-        }
+        try { await createProperty(property); await fetchProperties(); await fetchStats(); }
+        catch (e) { console.error(e); }
     };
 
     const handleUpdateProperty = async (property: Property) => {
-        try {
-            if (property.id) {
-                await updateProperty(property.id, property);
-                await fetchAllProperties();
-            }
-        } catch (error) {
-            console.error("Failed to update property:", error);
-        }
+        try { if (property.id) { await updateProperty(property.id, property); await fetchProperties(); } }
+        catch (e) { console.error(e); }
     };
 
     const handleDeleteProperties = async (ids: number[]) => {
-        try {
-            await deleteProperties(ids);
-            await fetchAllProperties();
-            await fetchTotalCount();
-        } catch (error) {
-            console.error("Failed to delete properties:", error);
-        }
-    };
-
-    const handleEdit = (property: Property) => {
-        setSelectedProperty(property);
-        setFormMode("edit");
-        setShowFormModal(true);
-    };
-
-    const handleCreate = () => {
-        setSelectedProperty(null);
-        setFormMode("create");
-        setShowFormModal(true);
+        try { await deleteProperties(ids); await fetchProperties(); await fetchStats(); }
+        catch (e) { console.error(e); }
     };
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
     const getPageNumbers = () => {
         const pages: (number | string)[] = [];
-        if (totalPages <= 5) {
-            for (let i = 1; i <= totalPages; i++) pages.push(i);
-        } else if (currentPage <= 3) {
-            for (let i = 1; i <= 4; i++) pages.push(i);
-            pages.push('...'); pages.push(totalPages);
-        } else if (currentPage >= totalPages - 2) {
-            pages.push(1); pages.push('...');
-            for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
-        } else {
-            pages.push(1); pages.push('...');
-            for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
-            pages.push('...'); pages.push(totalPages);
-        }
+        if (totalPages <= 5) { for (let i = 1; i <= totalPages; i++) pages.push(i); }
+        else if (currentPage <= 3) { for (let i = 1; i <= 4; i++) pages.push(i); pages.push("..."); pages.push(totalPages); }
+        else if (currentPage >= totalPages - 2) { pages.push(1); pages.push("..."); for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i); }
+        else { pages.push(1); pages.push("..."); for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i); pages.push("..."); pages.push(totalPages); }
         return pages;
     };
 
-    // Client-side pagination slice when filters active
-    const currentProperties = activeFiltersCount > 0
-        ? filteredProperties.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-        : filteredProperties;
-
     const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = Math.min(startIndex + itemsPerPage, activeFiltersCount > 0 ? filteredProperties.length : totalCount);
-    const displayedCount = activeFiltersCount > 0 ? filteredProperties.length : totalCount;
+    const endIndex = Math.min(startIndex + properties.length, totalCount);
 
-    if (loading) {
+    if (loading && properties.length === 0) {
         return (
-            <div className="p-10">
-                <div className="flex items-center justify-center py-20">
-                    <div className="flex flex-col items-center gap-4">
-                        <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#5B0F1A] border-t-transparent"></div>
-                        <p className="text-sm text-muted-foreground">Loading properties...</p>
-                    </div>
+            <div className="p-10 flex items-center justify-center py-20">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#5B0F1A] border-t-transparent" />
+                    <p className="text-sm text-muted-foreground">Loading properties...</p>
                 </div>
             </div>
         );
@@ -357,7 +227,8 @@ export default function PropertiesPage() {
 
     return (
         <div className="p-8 space-y-8">
-            {/* Header Section */}
+
+            {/* ── Header ── */}
             <div className="flex flex-col gap-6">
                 <div className="flex items-start justify-between">
                     <div className="space-y-2">
@@ -373,7 +244,7 @@ export default function PropertiesPage() {
                             <span>Manage and organize your property portfolio</span>
                             {activeFiltersCount > 0 && (
                                 <Badge variant="secondary" className="ml-2">
-                                    {activeFiltersCount} filter{activeFiltersCount > 1 ? 's' : ''} active
+                                    {activeFiltersCount} filter{activeFiltersCount > 1 ? "s" : ""} active
                                 </Badge>
                             )}
                         </p>
@@ -384,117 +255,75 @@ export default function PropertiesPage() {
                             onClick={() => setShowDeleteModal(true)}
                             variant="outline"
                             className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300 transition-all"
-                            disabled={properties.length === 0}
+                            disabled={statsCount.total === 0}
                         >
-                            <Trash2 size={18} className="mr-2" />
-                            Delete
+                            <Trash2 size={18} className="mr-2" /> Delete
                         </Button>
                         <Button
-                            onClick={handleCreate}
+                            onClick={() => { setSelectedProperty(null); setFormMode("create"); setShowFormModal(true); }}
                             className="bg-gradient-to-r from-[#5B0F1A] to-[#7A1424] hover:from-[#7A1424] hover:to-[#5B0F1A] text-white shadow-lg shadow-[#5B0F1A]/20 transition-all"
                         >
-                            <PlusCircle size={18} className="mr-2" />
-                            Add Property
+                            <PlusCircle size={18} className="mr-2" /> Add Property
                         </Button>
                     </div>
                 </div>
 
-                {/* Stats Cards */}
+                {/* Stats Cards — uses unfiltered counts so they don't change on filter */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <Card className="border-l-4 border-l-[#5B0F1A] bg-gradient-to-br from-white to-gray-50">
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground font-medium">Total Properties</p>
-                                    <p className="text-3xl font-bold text-[#5B0F1A] mt-1">{totalCount}</p>
-                                </div>
-                                <div className="p-3 bg-[#5B0F1A]/10 rounded-lg">
-                                    <Building2 className="h-6 w-6 text-[#5B0F1A]" />
-                                </div>
-                            </div>
+                        <CardContent className="p-4 flex items-center justify-between">
+                            <div><p className="text-sm text-muted-foreground font-medium">Total Properties</p><p className="text-3xl font-bold text-[#5B0F1A] mt-1">{statsCount.total}</p></div>
+                            <div className="p-3 bg-[#5B0F1A]/10 rounded-lg"><Building2 className="h-6 w-6 text-[#5B0F1A]" /></div>
                         </CardContent>
                     </Card>
-
                     <Card className="border-l-4 border-l-emerald-500 bg-gradient-to-br from-white to-emerald-50/30">
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground font-medium">Active Listings</p>
-                                    <p className="text-3xl font-bold text-emerald-600 mt-1">
-                                        {properties.filter(p => p.status === 1).length}
-                                    </p>
-                                </div>
-                                <div className="p-3 bg-emerald-100 rounded-lg">
-                                    <Sparkles className="h-6 w-6 text-emerald-600" />
-                                </div>
-                            </div>
+                        <CardContent className="p-4 flex items-center justify-between">
+                            <div><p className="text-sm text-muted-foreground font-medium">Active Listings</p><p className="text-3xl font-bold text-emerald-600 mt-1">{statsCount.total}</p></div>
+                            <div className="p-3 bg-emerald-100 rounded-lg"><Sparkles className="h-6 w-6 text-emerald-600" /></div>
                         </CardContent>
                     </Card>
-
                     <Card className="border-l-4 border-l-blue-500 bg-gradient-to-br from-white to-blue-50/30">
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground font-medium">For Sale</p>
-                                    <p className="text-3xl font-bold text-blue-600 mt-1">
-                                        {properties.filter(p => p.sale_type === 'sale').length}
-                                    </p>
-                                </div>
-                                <div className="p-3 bg-blue-100 rounded-lg">
-                                    <TrendingUp className="h-6 w-6 text-blue-600" />
-                                </div>
-                            </div>
+                        <CardContent className="p-4 flex items-center justify-between">
+                            <div><p className="text-sm text-muted-foreground font-medium">For Sale</p><p className="text-3xl font-bold text-blue-600 mt-1">{statsCount.forSale}</p></div>
+                            <div className="p-3 bg-blue-100 rounded-lg"><TrendingUp className="h-6 w-6 text-blue-600" /></div>
                         </CardContent>
                     </Card>
-
                     <Card className="border-l-4 border-l-amber-500 bg-gradient-to-br from-white to-amber-50/30">
-                        <CardContent className="p-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm text-muted-foreground font-medium">Showing</p>
-                                    <p className="text-3xl font-bold text-amber-600 mt-1">{currentProperties.length}</p>
-                                </div>
-                                <div className="p-3 bg-amber-100 rounded-lg">
-                                    <Filter className="h-6 w-6 text-amber-600" />
-                                </div>
-                            </div>
+                        <CardContent className="p-4 flex items-center justify-between">
+                            <div><p className="text-sm text-muted-foreground font-medium">Showing</p><p className="text-3xl font-bold text-amber-600 mt-1">{properties.length}</p></div>
+                            <div className="p-3 bg-amber-100 rounded-lg"><Filter className="h-6 w-6 text-amber-600" /></div>
                         </CardContent>
                     </Card>
                 </div>
             </div>
 
-            {/* Search & Filter Section */}
+            {/* ── Search & Filter ── */}
             <Card className="shadow-md border-0 bg-gradient-to-br from-white to-gray-50/50">
                 <CardContent className="p-6 space-y-4">
                     <div className="flex flex-col lg:flex-row gap-4">
-                        {/* Search Input — live filter on every keystroke */}
+                        {/* Search — debounced 400ms, spinner inside */}
                         <div className="flex-1 relative group">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-[#5B0F1A] transition-colors" />
                             <Input
                                 type="text"
-                                placeholder="Search by location, title, or address..."
+                                placeholder="Search by title, location, or address..."
                                 className="pl-12 h-12 border-gray-200 focus-visible:ring-[#5B0F1A] focus-visible:border-[#5B0F1A] bg-white"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
+                            {loading && searchQuery && (
+                                <div className="absolute right-10 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin rounded-full border-2 border-[#5B0F1A] border-t-transparent" />
+                            )}
                             {searchQuery && (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
-                                    onClick={() => setSearchQuery("")}
-                                >
+                                <Button variant="ghost" size="sm" className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0" onClick={() => setSearchQuery("")}>
                                     <X className="h-4 w-4" />
                                 </Button>
                             )}
                         </div>
 
-                        {/* Quick Filters */}
                         <div className="flex flex-wrap gap-3">
-                            <Select value={propertyType} onValueChange={setPropertyType}>
-                                <SelectTrigger className="w-[160px] h-12 border-gray-200 bg-white">
-                                    <SelectValue placeholder="Property Type" />
-                                </SelectTrigger>
+                            <Select value={propertyType} onValueChange={handleFilterChange(setPropertyType)}>
+                                <SelectTrigger className="w-[160px] h-12 border-gray-200 bg-white"><SelectValue placeholder="Property Type" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Types</SelectItem>
                                     <SelectItem value="1">House</SelectItem>
@@ -504,10 +333,8 @@ export default function PropertiesPage() {
                                 </SelectContent>
                             </Select>
 
-                            <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                <SelectTrigger className="w-[140px] h-12 border-gray-200 bg-white">
-                                    <SelectValue placeholder="Status" />
-                                </SelectTrigger>
+                            <Select value={statusFilter} onValueChange={handleFilterChange(setStatusFilter)}>
+                                <SelectTrigger className="w-[140px] h-12 border-gray-200 bg-white"><SelectValue placeholder="Status" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Status</SelectItem>
                                     <SelectItem value="sale">For Sale</SelectItem>
@@ -515,10 +342,8 @@ export default function PropertiesPage() {
                                 </SelectContent>
                             </Select>
 
-                            <Select value={priceRange} onValueChange={setPriceRange}>
-                                <SelectTrigger className="w-[160px] h-12 border-gray-200 bg-white">
-                                    <SelectValue placeholder="Price Range" />
-                                </SelectTrigger>
+                            <Select value={priceRange} onValueChange={handleFilterChange(setPriceRange)}>
+                                <SelectTrigger className="w-[160px] h-12 border-gray-200 bg-white"><SelectValue placeholder="Price Range" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Prices</SelectItem>
                                     <SelectItem value="0-1m">Under 1M</SelectItem>
@@ -531,104 +356,42 @@ export default function PropertiesPage() {
 
                             <Button
                                 variant={showFilters ? "default" : "outline"}
-                                className={`h-12 ${showFilters ? 'bg-[#5B0F1A] hover:bg-[#7A1424]' : 'border-gray-200 hover:bg-gray-50'}`}
+                                className={`h-12 ${showFilters ? "bg-[#5B0F1A] hover:bg-[#7A1424]" : "border-gray-200 hover:bg-gray-50"}`}
                                 onClick={() => setShowFilters(!showFilters)}
                             >
                                 <SlidersHorizontal className="h-4 w-4 mr-2" />
                                 Advanced
-                                {activeFiltersCount > 0 && (
-                                    <Badge className="ml-2 bg-white text-[#5B0F1A] text-xs">{activeFiltersCount}</Badge>
-                                )}
-                                <ChevronDown className={`h-4 w-4 ml-2 transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`} />
+                                {activeFiltersCount > 0 && <Badge className="ml-2 bg-white text-[#5B0F1A] text-xs">{activeFiltersCount}</Badge>}
+                                <ChevronDown className={`h-4 w-4 ml-2 transition-transform duration-200 ${showFilters ? "rotate-180" : ""}`} />
                             </Button>
 
                             {activeFiltersCount > 0 && (
-                                <Button
-                                    variant="ghost"
-                                    className="h-12 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                    onClick={handleResetFilters}
-                                >
-                                    <X className="h-4 w-4 mr-2" />
-                                    Reset ({activeFiltersCount})
+                                <Button variant="ghost" className="h-12 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={handleResetFilters}>
+                                    <X className="h-4 w-4 mr-2" /> Reset ({activeFiltersCount})
                                 </Button>
                             )}
                         </div>
                     </div>
 
-                    {/* Advanced Filters */}
                     {showFilters && (
                         <div className="pt-4 border-t border-gray-200 animate-in slide-in-from-top-2 duration-300">
                             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                                <Select value={bedroomsFilter} onValueChange={setBedroomsFilter}>
-                                    <SelectTrigger className="bg-white">
-                                        <SelectValue placeholder="Bedrooms" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Any Beds</SelectItem>
-                                        <SelectItem value="1">1 Bedroom</SelectItem>
-                                        <SelectItem value="2">2 Bedrooms</SelectItem>
-                                        <SelectItem value="3">3 Bedrooms</SelectItem>
-                                        <SelectItem value="4">4+ Bedrooms</SelectItem>
-                                    </SelectContent>
-                                </Select>
-
-                                <Select value={bathroomsFilter} onValueChange={setBathroomsFilter}>
-                                    <SelectTrigger className="bg-white">
-                                        <SelectValue placeholder="Bathrooms" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Any Baths</SelectItem>
-                                        <SelectItem value="1">1 Bathroom</SelectItem>
-                                        <SelectItem value="2">2 Bathrooms</SelectItem>
-                                        <SelectItem value="3">3+ Bathrooms</SelectItem>
-                                    </SelectContent>
-                                </Select>
-
-                                <Select value={landAreaFilter} onValueChange={setLandAreaFilter}>
-                                    <SelectTrigger className="bg-white">
-                                        <SelectValue placeholder="Land Area" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">Any Size</SelectItem>
-                                        <SelectItem value="0-100">0 - 100 m²</SelectItem>
-                                        <SelectItem value="100-200">100 - 200 m²</SelectItem>
-                                        <SelectItem value="200-500">200 - 500 m²</SelectItem>
-                                        <SelectItem value="500+">500+ m²</SelectItem>
-                                    </SelectContent>
-                                </Select>
-
-                                <Select value={locationFilter} onValueChange={setLocationFilter}>
-                                    <SelectTrigger className="bg-white">
-                                        <SelectValue placeholder="Location" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">All Locations</SelectItem>
-                                        <SelectItem value="jakarta">Jakarta</SelectItem>
-                                        <SelectItem value="tangerang">Tangerang</SelectItem>
-                                        <SelectItem value="bogor">Bogor</SelectItem>
-                                        <SelectItem value="bekasi">Bekasi</SelectItem>
-                                        <SelectItem value="depok">Depok</SelectItem>
-                                    </SelectContent>
-                                </Select>
-
-                                <Select value={sortBy} onValueChange={setSortBy}>
-                                    <SelectTrigger className="bg-white">
-                                        <SelectValue placeholder="Sort by" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="newest">Newest First</SelectItem>
-                                        <SelectItem value="price-low">Price: Low to High</SelectItem>
-                                        <SelectItem value="price-high">Price: High to Low</SelectItem>
-                                    </SelectContent>
-                                </Select>
-
-                                <Button
-                                    variant="outline"
-                                    onClick={handleResetFilters}
-                                    className="border-gray-200 hover:bg-gray-50"
-                                >
-                                    <X className="h-4 w-4 mr-2" />
-                                    Reset All
+                                {[
+                                    { value: bedroomsFilter, setter: setBedroomsFilter, placeholder: "Bedrooms", items: [["all", "Any Beds"], ["1", "1 Bedroom"], ["2", "2 Bedrooms"], ["3", "3 Bedrooms"], ["4", "4+ Bedrooms"]] },
+                                    { value: bathroomsFilter, setter: setBathroomsFilter, placeholder: "Bathrooms", items: [["all", "Any Baths"], ["1", "1 Bathroom"], ["2", "2 Bathrooms"], ["3", "3+ Bathrooms"]] },
+                                    { value: landAreaFilter, setter: setLandAreaFilter, placeholder: "Land Area", items: [["all", "Any Size"], ["0-100", "0-100 m²"], ["100-200", "100-200 m²"], ["200-500", "200-500 m²"], ["500+", "500+ m²"]] },
+                                    { value: locationFilter, setter: setLocationFilter, placeholder: "Location", items: [["all", "All Locations"], ["jakarta", "Jakarta"], ["tangerang", "Tangerang"], ["bogor", "Bogor"], ["bekasi", "Bekasi"], ["depok", "Depok"]] },
+                                    { value: sortBy, setter: setSortBy, placeholder: "Sort by", items: [["newest", "Newest First"], ["price-low", "Price: Low to High"], ["price-high", "Price: High to Low"]] },
+                                ].map(({ value, setter, placeholder, items }) => (
+                                    <Select key={placeholder} value={value} onValueChange={handleFilterChange(setter)}>
+                                        <SelectTrigger className="bg-white"><SelectValue placeholder={placeholder} /></SelectTrigger>
+                                        <SelectContent>
+                                            {items.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                ))}
+                                <Button variant="outline" onClick={handleResetFilters} className="border-gray-200 hover:bg-gray-50">
+                                    <X className="h-4 w-4 mr-2" /> Reset All
                                 </Button>
                             </div>
                         </div>
@@ -636,27 +399,21 @@ export default function PropertiesPage() {
                 </CardContent>
             </Card>
 
-            {/* Results Header & View Controls */}
+            {/* ── Results Header ── */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
+                <div className="flex items-center gap-3">
                     <p className="text-sm text-muted-foreground">
-                        Showing{' '}
-                        <span className="font-bold text-foreground">{startIndex + 1}-{endIndex}</span>{' '}
-                        of{' '}
-                        <span className="font-bold text-foreground">{displayedCount}</span> properties
-                        {activeFiltersCount > 0 && (
-                            <Badge variant="secondary" className="ml-2 bg-[#5B0F1A]/10 text-[#5B0F1A]">
-                                Filtered
-                            </Badge>
-                        )}
+                        Showing <span className="font-bold text-foreground">{totalCount === 0 ? 0 : startIndex + 1}–{endIndex}</span> of <span className="font-bold text-foreground">{totalCount}</span> properties
                     </p>
+                    {activeFiltersCount > 0 && <Badge variant="secondary" className="bg-[#5B0F1A]/10 text-[#5B0F1A]">Filtered</Badge>}
+                    {loading && properties.length > 0 && (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#5B0F1A] border-t-transparent" />
+                    )}
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <Select value={sortBy} onValueChange={setSortBy}>
-                        <SelectTrigger className="w-[180px] border-gray-200 bg-white">
-                            <SelectValue placeholder="Sort by" />
-                        </SelectTrigger>
+                    <Select value={sortBy} onValueChange={handleFilterChange(setSortBy)}>
+                        <SelectTrigger className="w-[180px] border-gray-200 bg-white"><SelectValue placeholder="Sort by" /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="newest">Newest First</SelectItem>
                             <SelectItem value="price-low">Price: Low to High</SelectItem>
@@ -665,115 +422,80 @@ export default function PropertiesPage() {
                     </Select>
 
                     <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setViewMode('grid')}
-                            className={`h-9 w-9 p-0 ${viewMode === 'grid' ? 'bg-white text-[#5B0F1A] shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-                        >
-                            <Grid3X3 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setViewMode('list')}
-                            className={`h-9 w-9 p-0 ${viewMode === 'list' ? 'bg-white text-[#5B0F1A] shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-                        >
-                            <List className="h-4 w-4" />
-                        </Button>
+                        {(["grid", "list"] as const).map((mode) => (
+                            <Button key={mode} variant="ghost" size="sm" onClick={() => setViewMode(mode)}
+                                className={`h-9 w-9 p-0 ${viewMode === mode ? "bg-white text-[#5B0F1A] shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                                {mode === "grid" ? <Grid3X3 className="h-4 w-4" /> : <List className="h-4 w-4" />}
+                            </Button>
+                        ))}
                     </div>
                 </div>
             </div>
 
-            {/* Property Grid/List */}
-            {currentProperties.length === 0 ? (
+            {/* ── Property Grid ── */}
+            {properties.length === 0 && !loading ? (
                 <Card className="border-2 border-dashed border-gray-200">
                     <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                        <div className="p-4 bg-gray-100 rounded-full mb-4">
-                            <Building2 className="h-10 w-10 text-gray-400" />
-                        </div>
+                        <div className="p-4 bg-gray-100 rounded-full mb-4"><Building2 className="h-10 w-10 text-gray-400" /></div>
                         <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                            {totalCount === 0 ? "No properties yet" : "No properties match your filters"}
+                            {statsCount.total === 0 ? "No properties yet" : "No properties match your filters"}
                         </h3>
                         <p className="text-muted-foreground mb-6 max-w-sm">
-                            {totalCount === 0
-                                ? "Get started by creating your first property listing"
-                                : "Try adjusting your search criteria or filters"}
+                            {statsCount.total === 0 ? "Get started by creating your first property listing" : "Try adjusting your search criteria or filters"}
                         </p>
-                        {totalCount === 0 ? (
-                            <Button
-                                onClick={handleCreate}
-                                className="bg-gradient-to-r from-[#5B0F1A] to-[#7A1424] hover:from-[#7A1424] hover:to-[#5B0F1A] text-white"
-                            >
-                                <PlusCircle size={18} className="mr-2" />
-                                Create First Property
+                        {statsCount.total === 0 ? (
+                            <Button onClick={() => { setSelectedProperty(null); setFormMode("create"); setShowFormModal(true); }}
+                                className="bg-gradient-to-r from-[#5B0F1A] to-[#7A1424] text-white">
+                                <PlusCircle size={18} className="mr-2" /> Create First Property
                             </Button>
                         ) : (
-                            <Button onClick={handleResetFilters} variant="outline">
-                                <X className="h-4 w-4 mr-2" />
-                                Clear All Filters
-                            </Button>
+                            <Button onClick={handleResetFilters} variant="outline"><X className="h-4 w-4 mr-2" /> Clear All Filters</Button>
                         )}
                     </CardContent>
                 </Card>
             ) : (
                 <>
-                    <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1'}`}>
-                        {currentProperties.map((property) => (
+                    <div className={`grid gap-6 transition-opacity duration-200 ${loading ? "opacity-50 pointer-events-none" : "opacity-100"} ${viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-4" : "grid-cols-1"
+                        }`}>
+                        {properties.map((property) => (
                             <PropertyCard
                                 key={property.id}
                                 property={property}
-                                onEdit={handleEdit}
+                                onEdit={(p) => { setSelectedProperty(p); setFormMode("edit"); setShowFormModal(true); }}
                             />
                         ))}
                     </div>
 
-                    {/* Pagination */}
                     {totalPages > 1 && (
                         <>
                             <div className="flex justify-center items-center mt-12 gap-2">
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={() => handlePageChange(currentPage - 1)}
-                                    disabled={currentPage === 1}
-                                    className="border-gray-200 hover:border-[#5B0F1A] hover:text-[#5B0F1A] disabled:opacity-50"
-                                >
+                                <Button variant="outline" size="icon" onClick={() => handlePageChange(currentPage - 1)}
+                                    disabled={currentPage === 1 || loading}
+                                    className="border-gray-200 hover:border-[#5B0F1A] hover:text-[#5B0F1A] disabled:opacity-50">
                                     <ChevronLeft className="h-4 w-4" />
                                 </Button>
 
                                 {getPageNumbers().map((page, index) =>
-                                    page === '...' ? (
-                                        <span key={`ellipsis-${index}`} className="px-2 text-gray-400">...</span>
+                                    page === "..." ? (
+                                        <span key={`e-${index}`} className="px-2 text-gray-400">...</span>
                                     ) : (
-                                        <Button
-                                            key={page}
-                                            variant={currentPage === page ? 'default' : 'outline'}
-                                            size="icon"
-                                            onClick={() => handlePageChange(page as number)}
-                                            className={currentPage === page
-                                                ? 'bg-[#5B0F1A] hover:bg-[#7A1424] text-white'
-                                                : 'border-gray-200 hover:border-[#5B0F1A] hover:text-[#5B0F1A]'}
-                                        >
+                                        <Button key={page} variant={currentPage === page ? "default" : "outline"} size="icon"
+                                            onClick={() => handlePageChange(page as number)} disabled={loading}
+                                            className={currentPage === page ? "bg-[#5B0F1A] hover:bg-[#7A1424] text-white" : "border-gray-200 hover:border-[#5B0F1A] hover:text-[#5B0F1A]"}>
                                             {page}
                                         </Button>
                                     )
                                 )}
 
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={() => handlePageChange(currentPage + 1)}
-                                    disabled={currentPage === totalPages}
-                                    className="border-gray-200 hover:border-[#5B0F1A] hover:text-[#5B0F1A] disabled:opacity-50"
-                                >
+                                <Button variant="outline" size="icon" onClick={() => handlePageChange(currentPage + 1)}
+                                    disabled={currentPage === totalPages || loading}
+                                    className="border-gray-200 hover:border-[#5B0F1A] hover:text-[#5B0F1A] disabled:opacity-50">
                                     <ChevronRight className="h-4 w-4" />
                                 </Button>
                             </div>
-
                             <div className="text-center mt-4">
                                 <p className="text-sm text-muted-foreground">
-                                    Page <span className="font-semibold text-[#5B0F1A]">{currentPage}</span> of{' '}
+                                    Page <span className="font-semibold text-[#5B0F1A]">{currentPage}</span> of{" "}
                                     <span className="font-semibold text-[#5B0F1A]">{totalPages}</span>
                                 </p>
                             </div>
@@ -782,7 +504,6 @@ export default function PropertiesPage() {
                 </>
             )}
 
-            {/* Modals */}
             <PropertyFormModal
                 open={showFormModal}
                 onClose={() => setShowFormModal(false)}
@@ -790,7 +511,6 @@ export default function PropertiesPage() {
                 property={selectedProperty}
                 mode={formMode}
             />
-
             <DeletePropertyModal
                 open={showDeleteModal}
                 onClose={() => setShowDeleteModal(false)}
