@@ -38,6 +38,7 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import { getAllProperties, getPropertiesCount } from '@/lib/services/property.service';
+import { getUserFavoriteIds } from '@/lib/services/favorites.service';
 
 interface Property {
   id?: number;
@@ -110,6 +111,9 @@ const Properties = () => {
     locationFilter !== 'all',
   ].filter(Boolean).length;
 
+  //favorites
+  const [favoriteIds, setFavoriteIds] = useState<number[]>([]); 
+
   // Calculate total pages based on filtered results
   const totalPages = Math.ceil(
     (activeFiltersCount > 0 ? filteredProperties.length : totalCount) / itemsPerPage
@@ -120,10 +124,16 @@ const Properties = () => {
     fetchProperties();
   }, [currentPage]);
 
-  // Fetch total count on mount
+  // Fetch total count and favorites on mount
   useEffect(() => {
     fetchTotalCount();
+    fetchFavorites();
   }, []);
+
+  async function fetchFavorites() {
+    const ids = await getUserFavoriteIds();
+    setFavoriteIds(ids);
+  }
 
   async function fetchTotalCount() {
     try {
@@ -147,7 +157,10 @@ const Properties = () => {
       const res = await getAllProperties(pageToFetch, limitToFetch);
       console.log(res);
 
-      const mapped: Property[] = res.data.map((item: any) => ({
+      // Handle berbagai kemungkinan struktur response
+      const propertyData = res.data?.property || res.data || [];
+      
+      const mapped: Property[] = propertyData.map((item: any) => ({
         id: item.id,
         title: item.title,
         description: item.description,
@@ -741,6 +754,7 @@ const Properties = () => {
                 {currentProperties.map((property) => (
                   <a key={property.id} href={`/property/${property.id}`} className="block group">
                     <PropertyCard
+                      id={property.id!}
                       image={property.image || property.cover_image_url || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800'}
                       title={property.title}
                       location={property.location || `${property.district}, ${property.regency}`}
@@ -751,6 +765,7 @@ const Properties = () => {
                       area={property.area || property.land_area || property.building_area || 0}
                       status={property.status}
                       isNew={property.isNew}
+                      initialLiked={favoriteIds.includes(property.id!)}
                     />
                   </a>
                 ))}

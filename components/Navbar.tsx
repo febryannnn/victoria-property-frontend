@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Menu, X, Phone, Mail } from "lucide-react";
+import { Menu, X, Phone, Mail, Heart } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -17,11 +17,11 @@ const Navbar = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const navLinks = [
-    { name: "Beranda", href: "/" },
-    { name: "Properti", href: "/properties" },
-    { name: "Tentang Kami", href: "/about" },
-    { name: "Kontak", href: "/contact" },
-  ];
+  { name: "Beranda", href: "/" },
+  { name: "Properti", href: "/properties" },
+  { name: "Tentang Kami", href: "/about" },
+  { name: "Kontak", href: "/contact" },
+];
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -143,14 +143,24 @@ const Navbar = () => {
                   </Link>
                 </>
               ) : (
-                <div className="relative" ref={dropdownRef}>
-                  <button
-                    onClick={() => setShowDropdown(!showDropdown)}
-                    className="flex items-center gap-2 font-medium text-victoria-navy hover:text-victoria-red transition-colors"
+                <div className="flex items-center gap-4">
+                  {/* Heart icon for favorites */}
+                  <Link
+                    href="/favorites"
+                    className="p-2 rounded-full hover:bg-muted transition-colors"
+                    aria-label="Favorites"
                   >
-                    <span>{user.username}</span>
-                    <User className="w-5 h-5" />
-                  </button>
+                    <Heart className={`w-5 h-5 text-victoria-red transition-colors ${pathname === "/favorites" ? "fill-victoria-red" : "hover:fill-victoria-red"}`} />
+                  </Link>
+
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      onClick={() => setShowDropdown(!showDropdown)}
+                      className="flex items-center gap-2 font-medium text-victoria-navy hover:text-victoria-red transition-colors"
+                    >
+                      <span>{user.username}</span>
+                      <User className="w-5 h-5" />
+                    </button>
 
                   {showDropdown && (
                     <div className="absolute right-0 mt-3 w-48 bg-white shadow-lg rounded-md border border-border z-50">
@@ -175,9 +185,10 @@ const Navbar = () => {
                         className="w-full text-left px-4 py-2 hover:bg-muted text-red-500"
                       >
                         Logout
-                      </button>
-                    </div>
-                  )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

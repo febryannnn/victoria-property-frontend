@@ -92,3 +92,23 @@ export async function imageFetch<T>(
     return text as unknown as T;
   }
 }
+
+export async function apiAuthFetch<T>(
+  path: string,
+  options?: RequestInit
+): Promise<T> {
+  const token = localStorage.getItem("token");
+  const res = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options?.headers || {}),
+    },
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data?.message || "API Error");
+  }
+  return data;
+}

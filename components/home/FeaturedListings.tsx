@@ -6,14 +6,16 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { getAllProperties } from "@/lib/services/property.service";
+import { getUserFavoriteIds } from "@/lib/services/favorites.service";
 
 const FeaturedListings = () => {
   const [properties, setProperties] = useState<any[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
-    fetchProperties();
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -45,10 +47,18 @@ const FeaturedListings = () => {
     return () => observer.disconnect();
   }, [loading]);
 
-  async function fetchProperties() {
+  async function fetchData() {
     try {
-      const res = await getAllProperties(1, 9);
-      const mapped = res.data.map((item: any) => ({
+      // Fetch properties dan favorites secara paralel
+      const [propertiesRes, userFavoriteIds] = await Promise.all([
+        getAllProperties(1, 9),
+        getUserFavoriteIds(),
+      ]);
+
+      // Handle berbagai kemungkinan struktur response
+      const propertyData = propertiesRes.data?.property || propertiesRes.data || [];
+      
+      const mapped = propertyData.map((item: any) => ({
         id: item.id,
         image: `http://localhost:8080${item.cover_image_url}`,
         title: item.title,
@@ -59,7 +69,9 @@ const FeaturedListings = () => {
         area: item.building_area,
         status: item.sale_type === "jual" ? "sale" : "rent",
       }));
+
       setProperties(mapped);
+      setFavoriteIds(userFavoriteIds);
     } catch (error) {
       console.error(error);
     } finally {
@@ -146,7 +158,10 @@ const FeaturedListings = () => {
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">
               {properties.map((property) => (
                 <Link key={property.id} href={`/property/${property.id}`} className="block fl-card">
-                  <PropertyCard {...property} />
+                  <PropertyCard 
+                    {...property} 
+                    initialLiked={favoriteIds.includes(property.id)}
+                  />
                 </Link>
               ))}
             </div>
