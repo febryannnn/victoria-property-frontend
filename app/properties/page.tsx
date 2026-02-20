@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Search,
   SlidersHorizontal,
@@ -73,20 +73,59 @@ interface Property {
   isNew?: boolean;
 }
 
-const Properties = () => {
+/* ─────────────────────────────────────────────
+   Skeleton card for loading state
+───────────────────────────────────────────── */
+const SkeletonCard = ({ index }: { index: number }) => (
+  <div
+    className="skeleton-card bg-card rounded-xl overflow-hidden shadow-sm"
+    style={{ animationDelay: `${index * 60}ms` }}
+  >
+    <div className="skeleton-block h-48 w-full" />
+    <div className="p-4 space-y-3">
+      <div className="skeleton-block h-4 w-3/4 rounded" />
+      <div className="skeleton-block h-3 w-1/2 rounded" />
+      <div className="skeleton-block h-5 w-1/3 rounded" />
+      <div className="flex gap-3 pt-1">
+        <div className="skeleton-block h-3 w-16 rounded" />
+        <div className="skeleton-block h-3 w-16 rounded" />
+        <div className="skeleton-block h-3 w-16 rounded" />
+      </div>
+    </div>
+  </div>
+);
 
+/* ─────────────────────────────────────────────
+   Scroll-reveal hook
+───────────────────────────────────────────── */
+function useScrollReveal(threshold = 0.1) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setVisible(true); },
+      { threshold }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [threshold]);
+  return { ref, visible };
+}
+
+const Properties = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [gridKey, setGridKey] = useState(0); // force re-animate grid on page change
 
-  // Data states
   const [properties, setProperties] = useState<Property[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
   const [totalCount, setTotalCount] = useState(0);
 
-  // Filter states
   const [searchQuery, setSearchQuery] = useState('');
-  const [appliedSearch, setAppliedSearch] = useState(''); 
+  const [appliedSearch, setAppliedSearch] = useState('');
   const [propertyType, setPropertyType] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priceRange, setPriceRange] = useState('all');
@@ -96,9 +135,10 @@ const Properties = () => {
   const [locationFilter, setLocationFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
 
-  // Pagination states - using server-side pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(12); // Items per page
+  const [itemsPerPage] = useState(12);
+
+  const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
 
   const activeFiltersCount = [
     appliedSearch !== '',
@@ -111,24 +151,16 @@ const Properties = () => {
     locationFilter !== 'all',
   ].filter(Boolean).length;
 
-  //favorites
-  const [favoriteIds, setFavoriteIds] = useState<number[]>([]); 
-
-  // Calculate total pages based on filtered results
   const totalPages = Math.ceil(
     (activeFiltersCount > 0 ? filteredProperties.length : totalCount) / itemsPerPage
   );
 
-  // Fetch properties from API with pagination
-  useEffect(() => {
-    fetchProperties();
-  }, [currentPage]);
+  const { ref: headerRef, visible: headerVisible } = useScrollReveal(0.1);
+  const { ref: resultsRef, visible: resultsVisible } = useScrollReveal(0.05);
+  const { ref: paginationRef, visible: paginationVisible } = useScrollReveal(0.1);
 
-  // Fetch total count and favorites on mount
-  useEffect(() => {
-    fetchTotalCount();
-    fetchFavorites();
-  }, []);
+  useEffect(() => { fetchProperties(); }, [currentPage]);
+  useEffect(() => { fetchTotalCount(); fetchFavorites(); }, []);
 
   async function fetchFavorites() {
     const ids = await getUserFavoriteIds();
@@ -147,19 +179,13 @@ const Properties = () => {
   async function fetchProperties() {
     try {
       setLoading(true);
-
-      // If filters are active, we need to fetch all and filter client-side
-      // Otherwise, use server-side pagination
       const shouldFetchAll = activeFiltersCount > 0;
       const pageToFetch = shouldFetchAll ? 1 : currentPage;
       const limitToFetch = shouldFetchAll ? 1000 : itemsPerPage;
 
       const res = await getAllProperties(pageToFetch, limitToFetch);
-      console.log(res);
-
-      // Handle berbagai kemungkinan struktur response
       const propertyData = res.data?.property || res.data || [];
-      
+
       const mapped: Property[] = propertyData.map((item: any) => ({
         id: item.id,
         title: item.title,
@@ -183,14 +209,10 @@ const Properties = () => {
         year_constructed: item.year_constructed,
         sale_type: item.sale_type,
         created_at: item.created_at,
-        cover_image_url: item.cover_image_url
-          ? `http://localhost:8080${item.cover_image_url}`
-          : null,
+        cover_image_url: item.cover_image_url ? `http://localhost:8080${item.cover_image_url}` : null,
         property_type_id: item.property_type_id,
         user_id: item.user_id,
-        image: item.cover_image_url
-          ? `http://localhost:8080${item.cover_image_url}`
-          : 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
+        image: item.cover_image_url ? `http://localhost:8080${item.cover_image_url}` : 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
         location: `${item.district}, ${item.regency}, ${item.province}`,
         area: item.land_area || item.building_area || 0,
         priceLabel: item.sale_type === 'sewa' ? '/bulan' : undefined,
@@ -198,13 +220,13 @@ const Properties = () => {
       }));
 
       setProperties(mapped);
-
-      // Apply filters if any active
       if (activeFiltersCount > 0) {
         applyFiltersToProperties(mapped);
       } else {
         setFilteredProperties(mapped);
       }
+      // trigger re-animation
+      setGridKey(k => k + 1);
     } catch (error) {
       console.error("Failed to fetch properties:", error);
     } finally {
@@ -212,179 +234,102 @@ const Properties = () => {
     }
   }
 
-  // Check if property is new (created in last 7 days)
   function isNewProperty(createdAt: string): boolean {
     const created = new Date(createdAt);
     const now = new Date();
-    const diffTime = Math.abs(now.getTime() - created.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.ceil(Math.abs(now.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
     return diffDays <= 7;
   }
 
-  // Format price from number to readable format
   function formatPrice(price: string): string {
     const numPrice = parseFloat(price);
-    if (numPrice >= 1000000000) {
-      return `Rp ${(numPrice / 1000000000).toFixed(1)} M`;
-    } else if (numPrice >= 1000000) {
-      return `Rp ${(numPrice / 1000000).toFixed(1)} Jt`;
-    }
+    if (numPrice >= 1000000000) return `Rp ${(numPrice / 1000000000).toFixed(1)} M`;
+    if (numPrice >= 1000000) return `Rp ${(numPrice / 1000000).toFixed(1)} Jt`;
     return `Rp ${numPrice.toLocaleString('id-ID')}`;
   }
 
-  // Generate page numbers to display
   const getPageNumbers = () => {
-    const pages = [];
-    const maxPagesToShow = 5;
-
-    if (totalPages <= maxPagesToShow) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
+    const pages: (number | string)[] = [];
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else if (currentPage <= 3) {
+      for (let i = 1; i <= 4; i++) pages.push(i);
+      pages.push('...'); pages.push(totalPages);
+    } else if (currentPage >= totalPages - 2) {
+      pages.push(1); pages.push('...');
+      for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
     } else {
-      if (currentPage <= 3) {
-        for (let i = 1; i <= 4; i++) {
-          pages.push(i);
-        }
-        pages.push('...');
-        pages.push(totalPages);
-      } else if (currentPage >= totalPages - 2) {
-        pages.push(1);
-        pages.push('...');
-        for (let i = totalPages - 3; i <= totalPages; i++) {
-          pages.push(i);
-        }
-      } else {
-        pages.push(1);
-        pages.push('...');
-        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
-          pages.push(i);
-        }
-        pages.push('...');
-        pages.push(totalPages);
-      }
+      pages.push(1); pages.push('...');
+      for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+      pages.push('...'); pages.push(totalPages);
     }
-
     return pages;
   };
 
   useEffect(() => {
-    if (activeFiltersCount > 0) {
-      fetchProperties();
-    } else {
-      setCurrentPage(1);
-      fetchProperties();
-    }
+    if (activeFiltersCount > 0) fetchProperties();
+    else { setCurrentPage(1); fetchProperties(); }
   }, [appliedSearch, propertyType, statusFilter, priceRange, bedroomsFilter, bathroomsFilter, landAreaFilter, locationFilter, sortBy]);
+
   const applyFiltersToProperties = (propertiesToFilter: Property[]) => {
     let filtered = [...propertiesToFilter];
-
-    // Search filter
     if (appliedSearch.trim()) {
-      const query = appliedSearch.toLowerCase();
-      filtered = filtered.filter(
-        (p) =>
-          p.title.toLowerCase().includes(query) ||
-          p.location?.toLowerCase().includes(query) ||
-          p.address?.toLowerCase().includes(query) ||
-          p.province?.toLowerCase().includes(query) ||
-          p.regency?.toLowerCase().includes(query) ||
-          p.district?.toLowerCase().includes(query)
+      const q = appliedSearch.toLowerCase();
+      filtered = filtered.filter(p =>
+        p.title.toLowerCase().includes(q) ||
+        p.location?.toLowerCase().includes(q) ||
+        p.address?.toLowerCase().includes(q) ||
+        p.province?.toLowerCase().includes(q) ||
+        p.regency?.toLowerCase().includes(q) ||
+        p.district?.toLowerCase().includes(q)
       );
     }
-
-    // Property type filter (based on property_type_id)
-    if (propertyType !== 'all') {
-      const typeId = parseInt(propertyType);
-      filtered = filtered.filter((p) => p.property_type_id === typeId);
-    }
-
-    // Status filter
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter((p) => p.status === statusFilter);
-    }
-
-    // Price range filter (in billions)
-    if (priceRange !== 'all') {
-      filtered = filtered.filter((p) => {
-        const price = parseFloat(p.price);
-        switch (priceRange) {
-          case '0-1m': return price < 1000000000;
-          case '1-3m': return price >= 1000000000 && price < 3000000000;
-          case '3-5m': return price >= 3000000000 && price < 5000000000;
-          case '5-10m': return price >= 5000000000 && price < 10000000000;
-          case '10m+': return price >= 10000000000;
-          default: return true;
-        }
-      });
-    }
-
-    // Bedrooms filter
-    if (bedroomsFilter !== 'all') {
-      const beds = parseInt(bedroomsFilter);
-      filtered = filtered.filter((p) =>
-        beds === 4 ? p.bedrooms >= 4 : p.bedrooms === beds
-      );
-    }
-
-    // Bathrooms filter
-    if (bathroomsFilter !== 'all') {
-      const baths = parseInt(bathroomsFilter);
-      filtered = filtered.filter((p) =>
-        baths === 3 ? p.bathrooms >= 3 : p.bathrooms === baths
-      );
-    }
-
-    // Land area filter
-    if (landAreaFilter !== 'all') {
-      filtered = filtered.filter((p) => {
-        const area = p.land_area || 0;
-        switch (landAreaFilter) {
-          case '0-100': return area < 100;
-          case '100-200': return area >= 100 && area < 200;
-          case '200-500': return area >= 200 && area < 500;
-          case '500+': return area >= 500;
-          default: return true;
-        }
-      });
-    }
-
-    // Location filter
-    if (locationFilter !== 'all') {
-      filtered = filtered.filter((p) =>
-        p.province?.toLowerCase().includes(locationFilter.toLowerCase()) ||
-        p.regency?.toLowerCase().includes(locationFilter.toLowerCase())
-      );
-    }
-
-    // Sorting
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'newest':
-          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-        case 'price-low':
-          return parseFloat(a.price) - parseFloat(b.price);
-        case 'price-high':
-          return parseFloat(b.price) - parseFloat(a.price);
-        default:
-          return 0;
+    if (propertyType !== 'all') filtered = filtered.filter(p => p.property_type_id === parseInt(propertyType));
+    if (statusFilter !== 'all') filtered = filtered.filter(p => p.status === statusFilter);
+    if (priceRange !== 'all') filtered = filtered.filter(p => {
+      const price = parseFloat(p.price);
+      switch (priceRange) {
+        case '0-1m': return price < 1000000000;
+        case '1-3m': return price >= 1000000000 && price < 3000000000;
+        case '3-5m': return price >= 3000000000 && price < 5000000000;
+        case '5-10m': return price >= 5000000000 && price < 10000000000;
+        case '10m+': return price >= 10000000000;
+        default: return true;
       }
     });
-
+    if (bedroomsFilter !== 'all') { const b = parseInt(bedroomsFilter); filtered = filtered.filter(p => b === 4 ? p.bedrooms >= 4 : p.bedrooms === b); }
+    if (bathroomsFilter !== 'all') { const b = parseInt(bathroomsFilter); filtered = filtered.filter(p => b === 3 ? p.bathrooms >= 3 : p.bathrooms === b); }
+    if (landAreaFilter !== 'all') filtered = filtered.filter(p => {
+      const area = p.land_area || 0;
+      switch (landAreaFilter) {
+        case '0-100': return area < 100;
+        case '100-200': return area >= 100 && area < 200;
+        case '200-500': return area >= 200 && area < 500;
+        case '500+': return area >= 500;
+        default: return true;
+      }
+    });
+    if (locationFilter !== 'all') filtered = filtered.filter(p =>
+      p.province?.toLowerCase().includes(locationFilter.toLowerCase()) ||
+      p.regency?.toLowerCase().includes(locationFilter.toLowerCase())
+    );
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'newest': return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+        case 'price-low': return parseFloat(a.price) - parseFloat(b.price);
+        case 'price-high': return parseFloat(b.price) - parseFloat(a.price);
+        default: return 0;
+      }
+    });
     setFilteredProperties(filtered);
   };
 
   const handleResetFilters = () => {
-    setSearchQuery('');
-    setAppliedSearch('')
-    setPropertyType('all');
-    setStatusFilter('all');
-    setPriceRange('all');
-    setBedroomsFilter('all');
-    setBathroomsFilter('all');
-    setLandAreaFilter('all');
-    setLocationFilter('all');
-    setSortBy('newest');
+    setSearchQuery(''); setAppliedSearch('');
+    setPropertyType('all'); setStatusFilter('all');
+    setPriceRange('all'); setBedroomsFilter('all');
+    setBathroomsFilter('all'); setLandAreaFilter('all');
+    setLocationFilter('all'); setSortBy('newest');
     setCurrentPage(1);
   };
 
@@ -393,17 +338,12 @@ const Properties = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Get current page properties
   const getCurrentPageProperties = () => {
     if (activeFiltersCount > 0) {
-      // Client-side pagination for filtered results
       const startIndex = (currentPage - 1) * itemsPerPage;
-      const endIndex = startIndex + itemsPerPage;
-      return filteredProperties.slice(startIndex, endIndex);
-    } else {
-      // Server-side pagination - show all properties from current fetch
-      return filteredProperties;
+      return filteredProperties.slice(startIndex, startIndex + itemsPerPage);
     }
+    return filteredProperties;
   };
 
   const currentProperties = getCurrentPageProperties();
@@ -411,427 +351,491 @@ const Properties = () => {
   const endIndex = Math.min(startIndex + itemsPerPage, activeFiltersCount > 0 ? filteredProperties.length : totalCount);
   const displayedCount = activeFiltersCount > 0 ? filteredProperties.length : totalCount;
 
-  if (loading) {
-    return (
+  return (
+    <>
+      <style>{`
+        /* ── Skeleton shimmer ── */
+        @keyframes skeleton-shimmer {
+          0%   { background-position: -400px 0; }
+          100% { background-position:  400px 0; }
+        }
+        .skeleton-block {
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 800px 100%;
+          animation: skeleton-shimmer 1.4s infinite linear;
+        }
+        .skeleton-card {
+          animation: skeleton-fade-in 0.4s ease both;
+        }
+        @keyframes skeleton-fade-in {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Hero header ── */
+        @keyframes hero-in {
+          from { opacity: 0; transform: translateY(28px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .hero-badge  { animation: hero-in 0.6s cubic-bezier(0.22,1,0.36,1) 0.05s both; }
+        .hero-title  { animation: hero-in 0.7s cubic-bezier(0.22,1,0.36,1) 0.15s both; }
+        .hero-sub    { animation: hero-in 0.7s cubic-bezier(0.22,1,0.36,1) 0.25s both; }
+
+        /* ── Search card ── */
+        .search-card-anim {
+          animation: hero-in 0.7s cubic-bezier(0.22,1,0.36,1) 0.3s both;
+        }
+
+        /* ── Property cards stagger ── */
+        @keyframes card-in {
+          from { opacity: 0; transform: translateY(32px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0)    scale(1); }
+        }
+        .prop-card-anim {
+          animation: card-in 0.55s cubic-bezier(0.22,1,0.36,1) both;
+        }
+
+        /* ── Filter panel ── */
+        @keyframes filter-slide-in {
+          from { opacity: 0; transform: translateY(-12px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .filter-panel-anim {
+          animation: filter-slide-in 0.35s cubic-bezier(0.22,1,0.36,1) both;
+        }
+
+        /* ── Results header reveal ── */
+        @keyframes fade-up {
+          from { opacity: 0; transform: translateY(16px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .results-header-anim {
+          opacity: 0;
+          transform: translateY(16px);
+          transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+        .results-header-anim.visible {
+          opacity: 1;
+          transform: translateY(0);
+        }
+
+        /* ── Pagination ── */
+        .pagination-anim {
+          opacity: 0;
+          transform: translateY(20px);
+          transition: opacity 0.5s ease 0.1s, transform 0.5s ease 0.1s;
+        }
+        .pagination-anim.visible {
+          opacity: 1;
+          transform: translateY(0);
+        }
+
+        /* ── Pagination button hover ── */
+        .page-btn {
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .page-btn:not(:disabled):hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+
+        /* ── Spinner ── */
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        .spinner {
+          animation: spin 0.8s linear infinite;
+        }
+
+        /* ── View mode toggle ── */
+        .view-btn {
+          transition: all 0.2s ease;
+        }
+        .view-btn:hover {
+          transform: scale(1.1);
+        }
+
+        /* ── Input focus lift ── */
+        .search-input-wrap {
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .search-input-wrap:focus-within {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 16px rgba(179,40,40,0.1);
+        }
+
+        /* ── Quick filter pills hover ── */
+        .filter-pill {
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .filter-pill:focus-within {
+          box-shadow: 0 2px 12px rgba(179,40,40,0.12);
+        }
+
+        /* ── Empty state ── */
+        @keyframes empty-in {
+          from { opacity: 0; transform: scale(0.95); }
+          to   { opacity: 1; transform: scale(1); }
+        }
+        .empty-anim {
+          animation: empty-in 0.5s cubic-bezier(0.22,1,0.36,1) both;
+        }
+      `}</style>
+
       <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
         <Navbar />
+
         <main className="pt-32 pb-20">
           <div className="container-victoria">
-            <div className="flex items-center justify-center py-20">
-              <div className="flex flex-col items-center gap-4">
-                <div className="h-12 w-12 animate-spin rounded-full border-4 border-victoria-navy border-t-transparent"></div>
-                <p className="text-sm text-muted-foreground">Memuat properti...</p>
+
+            {/* ── Hero Header ── */}
+            <div className="mb-5 text-center mt-10">
+              <div className="hero-badge inline-flex items-center gap-2 px-4 py-2 bg-victoria-navy/5 rounded-full mb-4">
+                <Sparkles className="w-4 h-4 text-victoria-red" />
+                <span className="text-sm font-medium text-victoria-navy">Properti Premium</span>
               </div>
+              <h1 className="hero-title text-4xl md:text-5xl font-bold text-victoria-navy mb-4 bg-gradient-to-r from-victoria-navy to-victoria-red bg-clip-text text-transparent">
+                Daftar Properti
+              </h1>
+              <p className="hero-sub text-lg text-muted-foreground max-w-2xl mx-auto">
+                Temukan properti impian Anda dari{' '}
+                <span className="font-semibold text-victoria-navy">{totalCount}</span> listing tersedia
+              </p>
             </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
-      <Navbar />
+            {/* ── Search & Filter Card ── */}
+            <Card className="search-card-anim mb-8 border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+              <CardContent className="p-6 md:p-8">
+                <div className="space-y-6">
 
-      <main className="pt-32 pb-20">
-        <div className="container-victoria">
-          {/* Hero Header Section */}
-          <div className="mb-5 text-center mt-10">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-victoria-navy/5 rounded-full mb-4">
-              <Sparkles className="w-4 h-4 text-victoria-red" />
-              <span className="text-sm font-medium text-victoria-navy">Properti Premium</span>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-victoria-navy mb-4 bg-gradient-to-r from-victoria-navy to-victoria-red bg-clip-text text-transparent">
-              Daftar Properti
-            </h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Temukan properti impian Anda dari <span className="font-semibold text-victoria-navy">{totalCount}</span> listing tersedia
-            </p>
-          </div>
+                  {/* Tabs */}
+                  <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
+                    <TabsList className="grid w-full grid-cols-3 h-12 bg-gray-100 p-1">
+                      {['all', 'sale', 'rent'].map((val, i) => (
+                        <TabsTrigger
+                          key={val}
+                          value={val}
+                          className="data-[state=active]:bg-victoria-red data-[state=active]:text-white hover:bg-victoria-red/50 hover:text-white transition-colors duration-200 rounded-md"
+                          style={{ transitionDelay: `${i * 40}ms` }}
+                        >
+                          {val === 'all' ? 'Semua Properti' : val === 'sale' ? 'Dijual' : 'Disewa'}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                  </Tabs>
 
-          {/* Modern Search & Filter Card */}
-          <Card className="mb-8 border-0 shadow-xl bg-white/80 backdrop-blur-sm">
-            <CardContent className="p-6 md:p-8">
-              <div className="space-y-6">
-                {/* Quick Status Tabs */}
-                <Tabs value={statusFilter} onValueChange={setStatusFilter} className="w-full">
-                  <TabsList className="grid w-full grid-cols-3 h-12 bg-gray-100 p-1">
-                    <TabsTrigger
-                      value="all"
-                      className="data-[state=active]:bg-victoria-red data-[state=active]:text-white hover:bg-victoria-red/50 hover:text-white transition-colors duration-200 rounded-md"
+                  {/* Search row */}
+                  <div className="flex flex-col lg:flex-row gap-4">
+                    <div className="search-input-wrap flex-1 relative group">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-victoria-red transition-colors" />
+                      <Input
+                        type="text"
+                        placeholder="Cari berdasarkan lokasi, nama properti..."
+                        className="pl-12 h-14 text-base border-gray-200 focus-visible:ring-victoria-red focus-visible:border-victoria-red bg-white shadow-sm"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') setAppliedSearch(searchQuery); }}
+                      />
+                      {searchQuery && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 p-0 hover:bg-gray-100"
+                          onClick={() => { setSearchQuery(''); setAppliedSearch(''); }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+
+                    <Button
+                      size="lg"
+                      className="h-14 px-8 bg-victoria-red hover:bg-victoria-maroon text-white hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200"
+                      onClick={() => setAppliedSearch(searchQuery)}
                     >
-                      Semua Properti
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="sale"
-                      className="data-[state=active]:bg-victoria-red data-[state=active]:text-white hover:bg-victoria-red/50 hover:text-white transition-colors duration-200 rounded-md"
-                    >
-                      Dijual
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="rent"
-                      className="data-[state=active]:bg-victoria-red data-[state=active]:text-white hover:bg-victoria-red/50 hover:text-white transition-colors duration-200 rounded-md"
-                    >
-                      Disewa
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
+                      <Search className="w-4 h-4 mr-2" />
+                      Cari
+                    </Button>
 
-                {/* Search Input Row */}
-                {/* Search Input Row */}
-                <div className="flex flex-col lg:flex-row gap-4">
-                  {/* Input - hapus pr-28, kembalikan ke normal, hapus tombol Cari di dalam */}
-                  <div className="flex-1 relative group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-victoria-red transition-colors" />
-                    <Input
-                      type="text"
-                      placeholder="Cari berdasarkan lokasi, nama properti..."
-                      className="pl-12 h-14 text-base border-gray-200 focus-visible:ring-victoria-red focus-visible:border-victoria-red bg-white shadow-sm"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') setAppliedSearch(searchQuery);
-                      }}
-                    />
-                    {searchQuery && (
+                    <Button
+                      variant={showFilters ? "default" : "outline"}
+                      size="lg"
+                      className={`h-14 px-6 transition-all duration-200 hover:-translate-y-0.5 ${showFilters
+                        ? 'bg-victoria-navy hover:bg-victoria-navy/90'
+                        : 'border-2 border-gray-200 hover:border-victoria-red hover:text-victoria-red'
+                        }`}
+                      onClick={() => setShowFilters(!showFilters)}
+                    >
+                      <SlidersHorizontal className="w-5 h-5 mr-2" />
+                      Filter
+                      {activeFiltersCount > 0 && (
+                        <Badge className="ml-2 bg-victoria-red hover:bg-victoria-red">{activeFiltersCount}</Badge>
+                      )}
+                      <ChevronDown className={`w-4 h-4 ml-2 transition-transform duration-300 ${showFilters ? 'rotate-180' : ''}`} />
+                    </Button>
+                  </div>
+
+                  {/* Quick filter pills */}
+                  <div className="flex flex-wrap gap-3">
+                    {[
+                      {
+                        value: propertyType, onChange: setPropertyType, width: 'w-[160px]',
+                        icon: <HomeIcon className="w-4 h-4 mr-2 text-victoria-red" />,
+                        placeholder: 'Tipe Properti',
+                        items: [['all', 'Semua Tipe'], ['1', 'Rumah'], ['2', 'Apartemen'], ['3', 'Ruko'], ['4', 'Tanah']]
+                      },
+                      {
+                        value: priceRange, onChange: setPriceRange, width: 'w-[180px]',
+                        icon: <DollarSign className="w-4 h-4 mr-2 text-victoria-red" />,
+                        placeholder: 'Rentang Harga',
+                        items: [['all', 'Semua Harga'], ['0-1m', 'Di bawah 1 M'], ['1-3m', '1 M - 3 M'], ['3-5m', '3 M - 5 M'], ['5-10m', '5 M - 10 M'], ['10m+', 'Di atas 10 M']]
+                      },
+                      {
+                        value: locationFilter, onChange: setLocationFilter, width: 'w-[160px]',
+                        icon: <MapPin className="w-4 h-4 mr-2 text-victoria-red" />,
+                        placeholder: 'Lokasi',
+                        items: [['all', 'Semua Lokasi'], ['jakarta', 'Jakarta'], ['tangerang', 'Tangerang'], ['bogor', 'Bogor'], ['bekasi', 'Bekasi'], ['depok', 'Depok']]
+                      },
+                    ].map((f, i) => (
+                      <Select key={i} value={f.value} onValueChange={f.onChange}>
+                        <SelectTrigger className={`filter-pill ${f.width} h-11 border-gray-200 bg-white hover:border-victoria-red transition-colors`}>
+                          {f.icon}
+                          <SelectValue placeholder={f.placeholder} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {f.items.map(([val, label]) => (
+                            <SelectItem key={val} value={val}>{label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ))}
+
+                    {activeFiltersCount > 0 && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 p-0 hover:bg-gray-100"
-                        onClick={() => { setSearchQuery(''); setAppliedSearch(''); }}
+                        className="h-11 text-victoria-red hover:text-victoria-red hover:bg-victoria-red/10 transition-all duration-200 hover:-translate-y-0.5"
+                        onClick={handleResetFilters}
                       >
-                        <X className="h-4 w-4" />
+                        <X className="w-4 h-4 mr-2" />
+                        Reset ({activeFiltersCount})
                       </Button>
                     )}
                   </div>
 
-                  {/* TAMBAH tombol Cari di luar input */}
-                  <Button
-                    size="lg"
-                    className="h-14 px-8 bg-victoria-red hover:bg-victoria-maroon text-white"
-                    onClick={() => setAppliedSearch(searchQuery)}
-                  >
-                    <Search className="w-4 h-4 mr-2" />
-                    Cari
-                  </Button>
-
-                  {/* Tombol Filter — tidak ada perubahan dari kode asli */}
-                  <Button
-                    variant={showFilters ? "default" : "outline"}
-                    size="lg"
-                    className={`h-14 px-6 ${showFilters
-                      ? 'bg-victoria-navy hover:bg-victoria-navy/90'
-                      : 'border-2 border-gray-200 hover:border-victoria-red hover:text-victoria-red'
-                      }`}
-                    onClick={() => setShowFilters(!showFilters)}
-                  >
-                    <SlidersHorizontal className="w-5 h-5 mr-2" />
-                    Filter
-                    {activeFiltersCount > 0 && (
-                      <Badge className="ml-2 bg-victoria-red hover:bg-victoria-red">
-                        {activeFiltersCount}
-                      </Badge>
-                    )}
-                    <ChevronDown className={`w-4 h-4 ml-2 transition-transform duration-300 ${showFilters ? 'rotate-180' : ''}`} />
-                  </Button>
-                </div>
-
-                {/* Quick Filter Pills */}
-                <div className="flex flex-wrap gap-3">
-                  <Select value={propertyType} onValueChange={setPropertyType}>
-                    <SelectTrigger className="w-[160px] h-11 border-gray-200 bg-white hover:border-victoria-red transition-colors">
-                      <HomeIcon className="w-4 h-4 mr-2 text-victoria-red" />
-                      <SelectValue placeholder="Tipe Properti" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Semua Tipe</SelectItem>
-                      <SelectItem value="1">Rumah</SelectItem>
-                      <SelectItem value="2">Apartemen</SelectItem>
-                      <SelectItem value="3">Ruko</SelectItem>
-                      <SelectItem value="4">Tanah</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={priceRange} onValueChange={setPriceRange}>
-                    <SelectTrigger className="w-[180px] h-11 border-gray-200 bg-white hover:border-victoria-red transition-colors">
-                      <DollarSign className="w-4 h-4 mr-2 text-victoria-red" />
-                      <SelectValue placeholder="Rentang Harga" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Semua Harga</SelectItem>
-                      <SelectItem value="0-1m">Di bawah 1 M</SelectItem>
-                      <SelectItem value="1-3m">1 M - 3 M</SelectItem>
-                      <SelectItem value="3-5m">3 M - 5 M</SelectItem>
-                      <SelectItem value="5-10m">5 M - 10 M</SelectItem>
-                      <SelectItem value="10m+">Di atas 10 M</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Select value={locationFilter} onValueChange={setLocationFilter}>
-                    <SelectTrigger className="w-[160px] h-11 border-gray-200 bg-white hover:border-victoria-red transition-colors">
-                      <MapPin className="w-4 h-4 mr-2 text-victoria-red" />
-                      <SelectValue placeholder="Lokasi" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Semua Lokasi</SelectItem>
-                      <SelectItem value="jakarta">Jakarta</SelectItem>
-                      <SelectItem value="tangerang">Tangerang</SelectItem>
-                      <SelectItem value="bogor">Bogor</SelectItem>
-                      <SelectItem value="bekasi">Bekasi</SelectItem>
-                      <SelectItem value="depok">Depok</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  {activeFiltersCount > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-11 text-victoria-red hover:text-victoria-red hover:bg-victoria-red/10"
-                      onClick={handleResetFilters}
-                    >
-                      <X className="w-4 h-4 mr-2" />
-                      Reset ({activeFiltersCount})
-                    </Button>
-                  )}
-                </div>
-
-                {/* Advanced Filters Panel */}
-                {showFilters && (
-                  <div className="pt-6 border-t border-gray-200 animate-in slide-in-from-top-4 duration-500">
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2 mb-4">
-                        <Filter className="w-5 h-5 text-victoria-navy" />
-                        <h3 className="font-semibold text-victoria-navy">Filter Lanjutan</h3>
-                      </div>
-
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-gray-700">Kamar Tidur</label>
-                          <Select value={bedroomsFilter} onValueChange={setBedroomsFilter}>
-                            <SelectTrigger className="bg-white">
-                              <SelectValue placeholder="Pilih jumlah" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">Semua</SelectItem>
-                              <SelectItem value="1">1 Kamar</SelectItem>
-                              <SelectItem value="2">2 Kamar</SelectItem>
-                              <SelectItem value="3">3 Kamar</SelectItem>
-                              <SelectItem value="4">4+ Kamar</SelectItem>
-                            </SelectContent>
-                          </Select>
+                  {/* Advanced filter panel */}
+                  {showFilters && (
+                    <div className="filter-panel-anim pt-6 border-t border-gray-200">
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Filter className="w-5 h-5 text-victoria-navy" />
+                          <h3 className="font-semibold text-victoria-navy">Filter Lanjutan</h3>
                         </div>
-
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-gray-700">Kamar Mandi</label>
-                          <Select value={bathroomsFilter} onValueChange={setBathroomsFilter}>
-                            <SelectTrigger className="bg-white">
-                              <SelectValue placeholder="Pilih jumlah" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">Semua</SelectItem>
-                              <SelectItem value="1">1 Kamar Mandi</SelectItem>
-                              <SelectItem value="2">2 Kamar Mandi</SelectItem>
-                              <SelectItem value="3">3+ Kamar Mandi</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-gray-700">Luas Tanah</label>
-                          <Select value={landAreaFilter} onValueChange={setLandAreaFilter}>
-                            <SelectTrigger className="bg-white">
-                              <SelectValue placeholder="Pilih ukuran" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">Semua Ukuran</SelectItem>
-                              <SelectItem value="0-100">0 - 100 m²</SelectItem>
-                              <SelectItem value="100-200">100 - 200 m²</SelectItem>
-                              <SelectItem value="200-500">200 - 500 m²</SelectItem>
-                              <SelectItem value="500+">500+ m²</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-gray-700">&nbsp;</label>
-                          <Button
-                            className="w-full bg-victoria-red hover:bg-victoria-red/90 text-white h-10"
-                            onClick={() => fetchProperties()}
-                          >
-                            Terapkan Filter
-                          </Button>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                          {[
+                            { label: 'Kamar Tidur', value: bedroomsFilter, onChange: setBedroomsFilter, items: [['all', 'Semua'], ['1', '1 Kamar'], ['2', '2 Kamar'], ['3', '3 Kamar'], ['4', '4+ Kamar']] },
+                            { label: 'Kamar Mandi', value: bathroomsFilter, onChange: setBathroomsFilter, items: [['all', 'Semua'], ['1', '1 Kamar Mandi'], ['2', '2 Kamar Mandi'], ['3', '3+ Kamar Mandi']] },
+                            { label: 'Luas Tanah', value: landAreaFilter, onChange: setLandAreaFilter, items: [['all', 'Semua Ukuran'], ['0-100', '0 - 100 m²'], ['100-200', '100 - 200 m²'], ['200-500', '200 - 500 m²'], ['500+', '500+ m²']] },
+                          ].map((f, i) => (
+                            <div key={i} className="space-y-2" style={{ animationDelay: `${i * 60}ms` }}>
+                              <label className="text-sm font-medium text-gray-700">{f.label}</label>
+                              <Select value={f.value} onValueChange={f.onChange}>
+                                <SelectTrigger className="bg-white hover:border-victoria-red transition-colors">
+                                  <SelectValue placeholder={`Pilih ${f.label.toLowerCase()}`} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {f.items.map(([val, label]) => (
+                                    <SelectItem key={val} value={val}>{label}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          ))}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700">&nbsp;</label>
+                            <Button
+                              className="w-full bg-victoria-red hover:bg-victoria-red/90 text-white h-10 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200"
+                              onClick={() => fetchProperties()}
+                            >
+                              Terapkan Filter
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Results Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-            <div className="flex items-center gap-4">
-              <p className="text-gray-600">
-                Menampilkan <span className="font-bold text-victoria-navy text-lg">{startIndex + 1}-{endIndex}</span> dari <span className="font-semibold text-gray-900">{displayedCount}</span> properti
-              </p>
-              {activeFiltersCount > 0 && (
-                <Badge variant="secondary" className="bg-victoria-red/10 text-victoria-red border-0">
-                  Terfilter
-                </Badge>
-              )}
-            </div>
-
-            <div className="flex items-center gap-3">
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[200px] border-gray-200 bg-white">
-                  <SelectValue placeholder="Urutkan" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newest">Terbaru</SelectItem>
-                  <SelectItem value="price-low">Harga: Rendah ke Tinggi</SelectItem>
-                  <SelectItem value="price-high">Harga: Tinggi ke Rendah</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <div className="hidden sm:flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setViewMode('grid')}
-                  className={`h-9 w-9 p-0 ${viewMode === 'grid'
-                    ? 'bg-white text-victoria-navy shadow-sm'
-                    : 'text-gray-500 hover:text-victoria-navy'
-                    }`}
-                >
-                  <Grid3X3 className="w-5 h-5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className={`h-9 w-9 p-0 ${viewMode === 'list'
-                    ? 'bg-white text-victoria-navy shadow-sm'
-                    : 'text-gray-500 hover:text-victoria-navy'
-                    }`}
-                >
-                  <List className="w-5 h-5" />
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* Property Grid */}
-          {currentProperties.length === 0 ? (
-            <Card className="border-2 border-dashed border-gray-200">
-              <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="p-4 bg-gray-100 rounded-full mb-4">
-                  <HomeIcon className="h-12 w-12 text-gray-400" />
+                  )}
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Tidak ada properti yang sesuai
-                </h3>
-                <p className="text-muted-foreground mb-6 max-w-sm">
-                  Coba ubah kriteria pencarian atau filter Anda
-                </p>
-                <Button
-                  onClick={handleResetFilters}
-                  variant="outline"
-                  className="border-victoria-red text-victoria-red hover:bg-victoria-red hover:text-white"
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Reset Semua Filter
-                </Button>
               </CardContent>
             </Card>
-          ) : (
-            <>
-              <div className={`grid gap-6 ${viewMode === 'grid'
-                ? 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-                : 'grid-cols-1'
-                }`}>
-                {currentProperties.map((property) => (
-                  <a key={property.id} href={`/property/${property.id}`} className="block group">
-                    <PropertyCard
-                      id={property.id!}
-                      image={property.image || property.cover_image_url || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800'}
-                      title={property.title}
-                      location={property.location || `${property.district}, ${property.regency}`}
-                      price={formatPrice(property.price)}
-                      priceLabel={property.priceLabel}
-                      bedrooms={property.bedrooms}
-                      bathrooms={property.bathrooms}
-                      area={property.area || property.land_area || property.building_area || 0}
-                      status={property.status}
-                      isNew={property.isNew}
-                      initialLiked={favoriteIds.includes(property.id!)}
-                    />
-                  </a>
-                ))}
+
+            {/* ── Results header ── */}
+            <div
+              ref={resultsRef}
+              className={`results-header-anim ${resultsVisible ? 'visible' : ''} flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8`}
+            >
+              <div className="flex items-center gap-4">
+                <p className="text-gray-600">
+                  Menampilkan{' '}
+                  <span className="font-bold text-victoria-navy text-lg">{startIndex + 1}-{endIndex}</span>{' '}
+                  dari <span className="font-semibold text-gray-900">{displayedCount}</span> properti
+                </p>
+                {activeFiltersCount > 0 && (
+                  <Badge variant="secondary" className="bg-victoria-red/10 text-victoria-red border-0">
+                    Terfilter
+                  </Badge>
+                )}
               </div>
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex justify-center items-center mt-12 gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="border-gray-200 hover:border-victoria-navy hover:text-victoria-navy disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
+              <div className="flex items-center gap-3">
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-[200px] border-gray-200 bg-white hover:border-victoria-red transition-colors">
+                    <SelectValue placeholder="Urutkan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Terbaru</SelectItem>
+                    <SelectItem value="price-low">Harga: Rendah ke Tinggi</SelectItem>
+                    <SelectItem value="price-high">Harga: Tinggi ke Rendah</SelectItem>
+                  </SelectContent>
+                </Select>
 
-                  {getPageNumbers().map((page, index) => (
-                    page === '...' ? (
-                      <span key={`ellipsis-${index}`} className="px-2 text-gray-400">
-                        ...
-                      </span>
-                    ) : (
-                      <Button
-                        key={page}
-                        variant={currentPage === page ? 'default' : 'outline'}
-                        size="icon"
-                        onClick={() => handlePageChange(page as number)}
-                        className={
-                          currentPage === page
-                            ? 'bg-victoria-navy hover:bg-victoria-navy/90 text-white'
-                            : 'border-gray-200 hover:border-victoria-navy hover:text-victoria-navy'
-                        }
-                      >
-                        {page}
-                      </Button>
-                    )
+                <div className="hidden sm:flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                  {(['grid', 'list'] as const).map((mode) => (
+                    <Button
+                      key={mode}
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setViewMode(mode)}
+                      className={`view-btn h-9 w-9 p-0 ${viewMode === mode
+                        ? 'bg-white text-victoria-navy shadow-sm'
+                        : 'text-gray-500 hover:text-victoria-navy'
+                        }`}
+                    >
+                      {mode === 'grid' ? <Grid3X3 className="w-5 h-5" /> : <List className="w-5 h-5" />}
+                    </Button>
                   ))}
+                </div>
+              </div>
+            </div>
 
+            {/* ── Property Grid ── */}
+            {loading ? (
+              <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'grid-cols-1'}`}>
+                {Array.from({ length: itemsPerPage }).map((_, i) => (
+                  <SkeletonCard key={i} index={i} />
+                ))}
+              </div>
+            ) : currentProperties.length === 0 ? (
+              <Card className="empty-anim border-2 border-dashed border-gray-200">
+                <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="p-4 bg-gray-100 rounded-full mb-4">
+                    <HomeIcon className="h-12 w-12 text-gray-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Tidak ada properti yang sesuai</h3>
+                  <p className="text-muted-foreground mb-6 max-w-sm">Coba ubah kriteria pencarian atau filter Anda</p>
                   <Button
+                    onClick={handleResetFilters}
                     variant="outline"
-                    size="icon"
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="border-gray-200 hover:border-victoria-navy hover:text-victoria-navy disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="border-victoria-red text-victoria-red hover:bg-victoria-red hover:text-white transition-all duration-200 hover:-translate-y-0.5"
                   >
-                    <ChevronRight className="h-4 w-4" />
+                    <X className="h-4 w-4 mr-2" />
+                    Reset Semua Filter
                   </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                <div
+                  key={gridKey}
+                  className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'grid-cols-1'}`}
+                >
+                  {currentProperties.map((property, i) => (
+                    <a
+                      key={property.id}
+                      href={`/property/${property.id}`}
+                      className="prop-card-anim block group"
+                      style={{ animationDelay: `${i * 55}ms` }}
+                    >
+                      <PropertyCard
+                        id={property.id!}
+                        image={property.image || property.cover_image_url || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800'}
+                        title={property.title}
+                        location={property.location || `${property.district}, ${property.regency}`}
+                        price={formatPrice(property.price)}
+                        priceLabel={property.priceLabel}
+                        bedrooms={property.bedrooms}
+                        bathrooms={property.bathrooms}
+                        area={property.area || property.land_area || property.building_area || 0}
+                        status={property.status}
+                        isNew={property.isNew}
+                        initialLiked={favoriteIds.includes(property.id!)}
+                      />
+                    </a>
+                  ))}
                 </div>
-              )}
 
-              {totalPages > 1 && (
-                <div className="text-center mt-4">
-                  <p className="text-sm text-muted-foreground">
-                    Halaman <span className="font-semibold text-victoria-navy">{currentPage}</span> dari <span className="font-semibold text-victoria-navy">{totalPages}</span>
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </main>
+                {/* ── Pagination ── */}
+                {totalPages > 1 && (
+                  <div
+                    ref={paginationRef}
+                    className={`pagination-anim ${paginationVisible ? 'visible' : ''}`}
+                  >
+                    <div className="flex justify-center items-center mt-12 gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className="page-btn border-gray-200 hover:border-victoria-navy hover:text-victoria-navy disabled:opacity-40"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
 
-      <Footer />
-    </div>
+                      {getPageNumbers().map((page, index) =>
+                        page === '...' ? (
+                          <span key={`ellipsis-${index}`} className="px-2 text-gray-400">...</span>
+                        ) : (
+                          <Button
+                            key={page}
+                            variant={currentPage === page ? 'default' : 'outline'}
+                            size="icon"
+                            onClick={() => handlePageChange(page as number)}
+                            className={`page-btn ${currentPage === page
+                              ? 'bg-victoria-navy hover:bg-victoria-navy/90 text-white shadow-md'
+                              : 'border-gray-200 hover:border-victoria-red hover:text-victoria-red'
+                              }`}
+                          >
+                            {page}
+                          </Button>
+                        )
+                      )}
+
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className="page-btn border-gray-200 hover:border-victoria-navy hover:text-victoria-navy disabled:opacity-40"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    <div className="text-center mt-4">
+                      <p className="text-sm text-muted-foreground">
+                        Halaman <span className="font-semibold text-victoria-navy">{currentPage}</span>{' '}
+                        dari <span className="font-semibold text-victoria-navy">{totalPages}</span>
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </main>
+
+        <Footer />
+      </div>
+    </>
   );
 };
 

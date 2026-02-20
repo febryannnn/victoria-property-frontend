@@ -15,19 +15,18 @@ import {
     Building2,
     FileText,
     Share2,
-    Heart,
     Phone,
     Mail,
     MessageCircle,
     ChevronRight,
     Check,
-    Bookmark
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import PropertyMap from "@/components/PropertyMap";
 import PropertyImageGallery from "@/components/PropertyImageGallery";
+import FavoriteButton from "@/components/FavoriteButton";
 
 interface Props {
     params: Promise<{ id: string }>;
@@ -306,7 +305,6 @@ export default async function PropertyDetail({ params }: Props) {
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    {/* Interactive Map Component */}
                                     <PropertyMap
                                         center={mapCenter}
                                         address={`${property.address}, ${property.district}, ${property.regency}`}
@@ -340,10 +338,9 @@ export default async function PropertyDetail({ params }: Props) {
                                             <Mail className="w-4 h-4 mr-2" />
                                             Email
                                         </Button>
-                                        <Button variant="outline" className="w-full h-11">
-                                            <Bookmark className="w-4 h-4 mr-2" />
-                                            Tambah ke Favorit
-                                        </Button>
+
+                                        {/* ✅ FavoriteButton menggantikan tombol statis */}
+                                        <FavoriteButton propertyId={property.id} propertyTitle={property.title} />
                                     </CardContent>
                                 </Card>
 

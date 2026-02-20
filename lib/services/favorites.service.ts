@@ -42,3 +42,17 @@ export async function getUserFavoriteIds(): Promise<number[]> {
     return [];
   }
 }
+
+// Tambah properti ke favorit
+export async function addFavorite(propertyId: number): Promise<void> {
+  await apiAuthFetch(`/api/properties/${propertyId}/favorite`, {
+    method: "POST",
+  });
+}
+
+// Hapus properti dari favorit
+export async function removeFavorite(propertyId: number): Promise<void> {
+  await apiAuthFetch(`/api/properties/${propertyId}/favorite`, {
+    method: "DELETE",
+  });
+}
