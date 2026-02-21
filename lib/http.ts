@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:8080";
+const API_URL = "https://vp-backend-production-2fef.up.railway.app";
 
 export async function apiFetch<T>(
   path: string,

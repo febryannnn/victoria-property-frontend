@@ -145,6 +145,7 @@ const Properties = () => {
   const [itemsPerPage] = useState(12);
 
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
+  const API_URL = "https://vp-backend-production-2fef.up.railway.app";
 
   // Debounce search
   useEffect(() => {
@@ -272,14 +273,14 @@ const Properties = () => {
         cover_image_url: item.cover_image_url
           ? item.cover_image_url.startsWith('http')
             ? item.cover_image_url
-            : `http://localhost:8080${item.cover_image_url}`
+            : `${API_URL}${item.cover_image_url}`
           : null,
         property_type_id: item.property_type_id,
         user_id: item.user_id,
         image: item.cover_image_url
           ? item.cover_image_url.startsWith('http')
             ? item.cover_image_url
-            : `http://localhost:8080${item.cover_image_url}`
+            : `${API_URL}${item.cover_image_url}`
           : 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
 
         location: `${item.district}, ${item.regency}, ${item.province}`,

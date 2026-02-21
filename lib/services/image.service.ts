@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:8080" // sesuaikan path kamu
+const API_URL = "https://vp-backend-production-2fef.up.railway.app/" // sesuaikan path kamu
 
 export async function imageFetch<T>(
     path: string,

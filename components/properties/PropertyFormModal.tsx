@@ -198,7 +198,7 @@ export default function PropertyFormModal({
             const normalizedData: Property = {
                 ...formData,
                 cover_image_url: formData.cover_image_url
-                    ? formData.cover_image_url.replace('http://localhost:8080', '')
+                    ? formData.cover_image_url.replace('https://vp-backend-production-2fef.up.railway.app/', '')
                     : formData.cover_image_url,
             };
 
@@ -292,12 +292,12 @@ export default function PropertyFormModal({
                                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                                                     {galleryImages.map((img) => {
                                                         const isCover = formData.cover_image_url
-                                                            ? formData.cover_image_url.replace('http://localhost:8080', '') === img.url
+                                                            ? formData.cover_image_url.replace('https://vp-backend-production-2fef.up.railway.app/', '') === img.url
                                                             : false;
                                                         return (
                                                             <div key={img.id} className="relative group rounded-lg overflow-hidden border-2 border-transparent hover:border-[#5B0F1A] transition-all">
                                                                 <img
-                                                                    src={img.url.startsWith('http') ? img.url : `http://localhost:8080${img.url}`}
+                                                                    src={img.url.startsWith('http') ? img.url : `https://vp-backend-production-2fef.up.railway.app/${img.url}`}
                                                                     className="h-20 sm:h-28 w-full object-cover"
                                                                     alt=""
                                                                 />

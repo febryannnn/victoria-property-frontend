@@ -22,6 +22,8 @@ const mapStatus = (status: number): "sale" | "rent" | "hot" => {
   if (status === 3) return "hot";
   return "sale";
 };
+const API_URL = "https://vp-backend-production-2fef.up.railway.app";
+
 
 export default function FavoritesPage() {
   const router = useRouter();
@@ -99,7 +101,7 @@ export default function FavoritesPage() {
                 <PropertyCard
                   key={property.id}
                   id={property.id}
-                  image={`http://localhost:8080${property.cover_image_url || "/placeholder.jpg"}`}
+                  image={`${API_URL}${property.cover_image_url || "/placeholder.jpg"}`}
                   title={property.title}
                   location={`${property.district}, ${property.regency}`}
                   price={formatPrice(property.price)}

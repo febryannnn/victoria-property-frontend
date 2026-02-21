@@ -19,6 +19,7 @@ import { getAllProperties, getPropertiesCount, PropertyFilterParams } from "@/li
 import SearchAutocomplete, { SuggestionItem } from "@/components/SearchAutoComplete";
 
 export default function PropertiesPage() {
+    const API_URL = "https://vp-backend-production-2fef.up.railway.app";
     const [properties, setProperties] = useState<Property[]>([]);
     const [totalCount, setTotalCount] = useState(0);
     const [statsCount, setStatsCount] = useState({ total: 0, forSale: 0 });
@@ -144,7 +145,7 @@ export default function PropertiesPage() {
             garage: item.garage, carport: item.carport, certificate: item.certificate,
             year_constructed: item.year_constructed, sale_type: item.sale_type,
             created_at: item.created_at,
-            cover_image_url: item.cover_image_url ? `http://localhost:8080${item.cover_image_url}` : null,
+            cover_image_url: item.cover_image_url ? `${API_URL}${item.cover_image_url}` : null,
             property_type_id: item.property_type_id, user_id: item.user_id,
         }));
     }
