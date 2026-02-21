@@ -339,8 +339,8 @@ export default function DashboardPage() {
                                         <Badge
                                             variant="outline"
                                             className={`text-xs ${data.growth > 0
-                                                    ? 'border-green-200 text-green-700 bg-green-50'
-                                                    : 'border-red-200 text-red-700 bg-red-50'
+                                                ? 'border-green-200 text-green-700 bg-green-50'
+                                                : 'border-red-200 text-red-700 bg-red-50'
                                                 }`}
                                         >
                                             {data.growth > 0 ? '+' : ''}{data.growth}%
@@ -401,18 +401,18 @@ export default function DashboardPage() {
                                     <div className="relative">
                                         <div
                                             className={`w-2 h-2 rounded-full mt-2 ${activity.type === "success"
-                                                    ? "bg-green-500"
-                                                    : activity.type === "info"
-                                                        ? "bg-blue-500"
-                                                        : "bg-orange-500"
+                                                ? "bg-green-500"
+                                                : activity.type === "info"
+                                                    ? "bg-blue-500"
+                                                    : "bg-orange-500"
                                                 }`}
                                         />
                                         <div
                                             className={`absolute top-2 left-1 w-0.5 h-full ${activity.type === "success"
-                                                    ? "bg-green-500/20"
-                                                    : activity.type === "info"
-                                                        ? "bg-blue-500/20"
-                                                        : "bg-orange-500/20"
+                                                ? "bg-green-500/20"
+                                                : activity.type === "info"
+                                                    ? "bg-blue-500/20"
+                                                    : "bg-orange-500/20"
                                                 }`}
                                         />
                                     </div>

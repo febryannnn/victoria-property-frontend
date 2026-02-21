@@ -21,3 +21,17 @@ export function register(payload: {
     body: JSON.stringify(payload),
   });
 }
+
+export interface LoginResponse {
+  success: boolean;
+  message: string;
+  data: {
+    token: string;
+    user: {
+      email: string;
+      phone_number: string;
+      role: number;
+      username: string;
+    };
+  };
+}

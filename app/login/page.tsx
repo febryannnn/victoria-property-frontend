@@ -12,6 +12,7 @@ import { login } from "@/lib/services/auth.service";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { FcGoogle } from "react-icons/fc";
+import { LoginResponse } from "@/lib/services/auth.service";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -35,10 +36,7 @@ export default function LoginPage() {
       setLoading(true);
       setError(null);
 
-      const res = await login({
-        email,
-        password,
-      });
+      const res = await login({ email, password }) as LoginResponse;
 
       localStorage.setItem("token", res.data.token);
       localStorage.setItem("user", JSON.stringify(res.data.user));
@@ -52,9 +50,10 @@ export default function LoginPage() {
         router.push("/");
       }
 
-    } catch (err: any) {
-      toast.error(err?.message || "Login gagal")
-      setError(err?.message || "Login gagal");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Login gagal";
+      toast.error(message);
+      setError(message);
     } finally {
       setLoading(false);
     }

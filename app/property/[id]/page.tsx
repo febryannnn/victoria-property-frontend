@@ -79,13 +79,13 @@ export default async function PropertyDetail({ params }: Props) {
     };
 
     // Get water source label
-    const getWaterSource = (source: string) => {
-        const sources: { [key: string]: string } = {
-            "1": "PAM",
-            "2": "Sumur",
-            "3": "Sumur Bor",
+    const getWaterSource = (source: number) => {
+        const sources: Record<number, string> = {
+            1: "PAM",
+            2: "Sumur",
+            3: "Sumur Bor",
         };
-        return sources[source] || source;
+        return sources[source] || "-";
     };
 
     const features = [

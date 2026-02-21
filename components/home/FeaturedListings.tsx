@@ -51,13 +51,13 @@ const FeaturedListings = () => {
     try {
       // Fetch properties dan favorites secara paralel
       const [propertiesRes, userFavoriteIds] = await Promise.all([
-        getAllProperties(1, 9),
+        getAllProperties({ page: 1, limit: 9 }),
         getUserFavoriteIds(),
       ]);
 
       // Handle berbagai kemungkinan struktur response
-      const propertyData = propertiesRes.data?.property || propertiesRes.data || [];
-      
+      const propertyData = Array.isArray(propertiesRes.data) ? propertiesRes.data : [];
+
       const mapped = propertyData.map((item: any) => ({
         id: item.id,
         image: `http://localhost:8080${item.cover_image_url}`,
@@ -158,8 +158,8 @@ const FeaturedListings = () => {
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8">
               {properties.map((property) => (
                 <Link key={property.id} href={`/property/${property.id}`} className="block fl-card">
-                  <PropertyCard 
-                    {...property} 
+                  <PropertyCard
+                    {...property}
                     initialLiked={favoriteIds.includes(property.id)}
                   />
                 </Link>

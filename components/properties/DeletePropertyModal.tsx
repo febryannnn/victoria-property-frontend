@@ -40,7 +40,7 @@ export default function DeletePropertyModal({
     async function fetchAllProperties() {
         try {
             setLoadingProperties(true);
-            const res = await getAllProperties(1, 10000);
+            const res = await getAllProperties({ page: 1, limit: 10000 });
             setAllProperties(Array.isArray(res.data) ? res.data : []);
         } catch (error) {
             toast.error("Failed to load properties");
@@ -227,8 +227,8 @@ export default function DeletePropertyModal({
                                         <div
                                             key={property.id}
                                             className={`flex items-start gap-2 sm:gap-3 p-2.5 sm:p-3 rounded-lg border transition-all cursor-pointer ${isSelected
-                                                    ? 'bg-red-50 border-red-200 shadow-sm'
-                                                    : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200'
+                                                ? 'bg-red-50 border-red-200 shadow-sm'
+                                                : 'bg-white border-transparent hover:bg-gray-50 hover:border-gray-200'
                                                 }`}
                                             onClick={() => handleToggle(property.id!)}
                                         >
@@ -253,7 +253,7 @@ export default function DeletePropertyModal({
                                                         </p>
                                                     </div>
                                                     <div className={`text-xs sm:text-sm font-semibold whitespace-nowrap shrink-0 ${isSelected ? 'text-red-900' : 'text-gray-900'}`}>
-                                                        Rp {parseFloat(property.price).toLocaleString("id-ID")}
+                                                        Rp {property.price.toLocaleString("id-ID")}
                                                     </div>
                                                 </div>
                                                 {property.bedrooms > 0 && (

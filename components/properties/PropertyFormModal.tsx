@@ -43,6 +43,7 @@ export default function PropertyFormModal({
     mode,
 }: PropertyFormModalProps) {
     const [formData, setFormData] = useState<Property>({
+        id: 0,
         title: "",
         description: "",
         price: 0,
@@ -54,7 +55,7 @@ export default function PropertyFormModal({
         building_area: 0,
         land_area: 0,
         electricity: 0,
-        water_source: "",
+        water_source: 0,
         bedrooms: 0,
         bathrooms: 0,
         floors: 0,
@@ -65,6 +66,10 @@ export default function PropertyFormModal({
         sale_type: "jual",
         property_type_id: 1,
         user_id: 1,
+        created_at: "",
+        cover_image_url: "",
+        latitude: 0,
+        longitude: 0,
     });
     const [loading, setLoading] = useState(false);
     const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -130,6 +135,7 @@ export default function PropertyFormModal({
             fetchGalleryImages(property.id!);
         } else {
             setFormData({
+                id: 0,
                 title: "",
                 description: "",
                 price: 0,
@@ -141,7 +147,7 @@ export default function PropertyFormModal({
                 building_area: 0,
                 land_area: 0,
                 electricity: 0,
-                water_source: "",
+                water_source: 0,
                 bedrooms: 0,
                 bathrooms: 0,
                 floors: 0,
@@ -152,6 +158,11 @@ export default function PropertyFormModal({
                 sale_type: "jual",
                 property_type_id: 1,
                 user_id: 1,
+                // ↓ tambahkan ini
+                created_at: "",
+                cover_image_url: "",
+                latitude: 0,
+                longitude: 0,
             });
             setCreatedPropertyId(null);
             setImagePreviews([]);
@@ -205,18 +216,24 @@ export default function PropertyFormModal({
             let result: Property;
 
             if (mode === "create") {
-                result = await toast.promise(
-                    createProperty(normalizedData),
-                    { loading: "Creating property...", success: "Property created successfully", error: "Failed to create property" }
-                );
-                setCreatedPropertyId(result.id!);
+                const promise = createProperty(normalizedData);
+                toast.promise(promise, {
+                    loading: "Creating property...",
+                    success: "Property created successfully",
+                    error: "Failed to create property",
+                });
+                result = await promise;
+                setCreatedPropertyId(result.id);
             } else {
                 if (!normalizedData.id) { toast.error("Property ID not found"); return; }
-                result = await toast.promise(
-                    updateProperty(normalizedData.id, normalizedData),
-                    { loading: "Updating property...", success: "Property updated successfully", error: "Failed to update property" }
-                );
-                setCreatedPropertyId(result.id!);
+                const promise = updateProperty(normalizedData.id, normalizedData);
+                toast.promise(promise, {
+                    loading: "Updating property...",
+                    success: "Property updated successfully",
+                    error: "Failed to update property",
+                });
+                result = await promise;
+                setCreatedPropertyId(result.id);
             }
 
             onSubmit(result);
@@ -545,8 +562,8 @@ export default function PropertyFormModal({
                                 regency={formData.regency}
                                 district={formData.district}
                                 address={formData.address}
-                                latitude={formData.latitude}
-                                longitude={formData.longitude}
+                                latitude={formData.latitude ?? 0}
+                                longitude={formData.longitude ?? 0}
                                 onChange={(lat, lng) => {
                                     handleChange("latitude", lat);
                                     handleChange("longitude", lng);
@@ -622,9 +639,10 @@ export default function PropertyFormModal({
                                 <div>
                                     <Label className="text-xs sm:text-sm">Water Source</Label>
                                     <Input
+                                        type="number"
                                         value={formData.water_source}
-                                        onChange={(e) => handleChange("water_source", e.target.value)}
-                                        placeholder="PDAM"
+                                        onChange={(e) => handleChange("water_source", Number(e.target.value))}
+                                        placeholder="1"
                                         className="focus-visible:ring-[#5B0F1A] text-sm h-9 sm:h-10"
                                         required
                                     />

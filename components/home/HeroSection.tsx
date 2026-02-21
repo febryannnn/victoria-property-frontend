@@ -220,8 +220,8 @@ const HeroSection = () => {
                     key={tab}
                     onClick={() => setActiveTab(tab)}
                     className={`px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-300 ease-in-out ${activeTab === tab
-                        ? 'bg-victoria-red text-white shadow-lg scale-105'
-                        : 'bg-muted text-muted-foreground hover:bg-victoria-red/50 hover:text-white hover:shadow-md hover:scale-105'
+                      ? 'bg-victoria-red text-white shadow-lg scale-105'
+                      : 'bg-muted text-muted-foreground hover:bg-victoria-red/50 hover:text-white hover:shadow-md hover:scale-105'
                       }`}
                   >
                     {tab === 'dijual' ? 'Dijual' : 'Disewa'}

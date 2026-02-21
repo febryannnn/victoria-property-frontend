@@ -1,7 +1,7 @@
 import { apiFetch } from "../http";
 import { apiAdminFetch } from "../http";
 import { imageFetch } from "../http";
-import { GetAllPropertyResponse } from "../types/property";
+import { GetAllPropertyResponse, GetPropertyByIdResponse } from "../types/property";
 import { Property, User, DashboardStats } from "../types/property";
 import { GetPropertiesCountResponse } from "../types/property";
 
@@ -92,7 +92,10 @@ export async function deleteProperty(id: number): Promise<void> {
 }
 
 export async function getPropertyById(id: string | number) {
-    return apiFetch(`/api/properties/${id}`, { method: "GET" });
+    return apiFetch<GetPropertyByIdResponse>(
+        `/api/properties/${id}`,
+        { method: "GET" }
+    );
 }
 
 export async function getPropertyImages(propertyId: number) {

@@ -36,7 +36,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
-import { useSearchParams } from 'next/navigation';
+// import { useSearchParams } from 'next/navigation';
 import { getAllProperties, getPropertiesCount, PropertyFilterParams } from '@/lib/services/property.service';
 import { getUserFavoriteIds } from '@/lib/services/favorites.service';
 import SearchAutocomplete from '@/components/SearchAutoComplete';
@@ -116,7 +116,7 @@ function useScrollReveal(threshold = 0.1) {
 }
 
 const Properties = () => {
-  
+
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -125,17 +125,17 @@ const Properties = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [totalCount, setTotalCount] = useState(0);
 
-  const searchParams = useSearchParams();
+  // const searchParams = useSearchParams();
 
-  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('keyword') ?? '');
-  const [debouncedSearch, setDebouncedSearch] = useState(() => searchParams.get('keyword') ?? '');
-  const [propertyType, setPropertyType] = useState(() => searchParams.get('type') ?? 'all');
-  const [statusFilter, setStatusFilter] = useState(() => searchParams.get('sale_type') ?? 'all');
-  const [priceRange, setPriceRange] = useState(() => searchParams.get('price') ?? 'all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [propertyType, setPropertyType] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [locationFilter, setLocationFilter] = useState('all');
+  const [priceRange, setPriceRange] = useState('all');
   const [bedroomsFilter, setBedroomsFilter] = useState('all');
   const [bathroomsFilter, setBathroomsFilter] = useState('all');
   const [landAreaFilter, setLandAreaFilter] = useState('all');
-  const [locationFilter, setLocationFilter] = useState(() => searchParams.get('location') ?? 'all'); // regency
   const [districtFilter, setDistrictFilter] = useState('all');
 
   const [provinceFilter, setProvinceFilter] = useState('all'); // ← BARU: province param
@@ -244,8 +244,8 @@ const Properties = () => {
       setLoading(true);
       const params = buildServerParams();
       const res = await getAllProperties(params);
-      const propertyData = res.data?.property || res.data || [];
-      const serverTotal = res.data?.total ?? res.total ?? null;
+      const propertyData = Array.isArray(res.data) ? res.data : [];
+      const serverTotal = res.meta?.total ?? null;
 
       const mapped: Property[] = propertyData.map((item: any) => ({
         id: item.id,
@@ -489,24 +489,24 @@ const Properties = () => {
 
                   {/* ── Search Autocomplete ── */}
                   <div style={{ background: 'linear-gradient(135deg, #ffffff 0%, #ffffff 50%, #ffffff 100%)', padding: '20px', borderRadius: '24px' }}>
-                  <SearchAutocomplete
-                    onSearch={(label, filterParams) => {
-                      // Reset semua filter lokasi & keyword dulu
-                      setSearchQuery('');
-                      setDebouncedSearch('');
-                      setLocationFilter('all');
-                      setProvinceFilter('all');
-                      setDistrictFilter('all')
+                    <SearchAutocomplete
+                      onSearch={(label, filterParams) => {
+                        // Reset semua filter lokasi & keyword dulu
+                        setSearchQuery('');
+                        setDebouncedSearch('');
+                        setLocationFilter('all');
+                        setProvinceFilter('all');
+                        setDistrictFilter('all')
 
-                      // Terapkan filter sesuai tipe suggestion yang dipilih
-                      if (filterParams.keyword) setSearchQuery(filterParams.keyword);
-                      if (filterParams.regency) setLocationFilter(filterParams.regency);
-                      if (filterParams.province) setProvinceFilter(filterParams.province);
-                      if (filterParams.district) setDistrictFilter(filterParams.district);
+                        // Terapkan filter sesuai tipe suggestion yang dipilih
+                        if (filterParams.keyword) setSearchQuery(filterParams.keyword);
+                        if (filterParams.regency) setLocationFilter(filterParams.regency);
+                        if (filterParams.province) setProvinceFilter(filterParams.province);
+                        if (filterParams.district) setDistrictFilter(filterParams.district);
 
-                      setCurrentPage(1);
-                    }}
-                  />
+                        setCurrentPage(1);
+                      }}
+                    />
                   </div>
 
                   {/* Quick filter pills */}

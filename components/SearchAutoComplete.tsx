@@ -94,7 +94,7 @@ export default function SearchAutocomplete({
 
     const inputRef = useRef<HTMLInputElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const debounceRef = useRef<NodeJS.Timeout>();
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     /* ── Load recent searches ── */
     useEffect(() => {
@@ -121,7 +121,7 @@ export default function SearchAutocomplete({
         async function loadLocations() {
             try {
                 const res = await getAllProperties({ limit: 200, page: 1 });
-                const data: any[] = res.data?.property || res.data || [];
+                const data: any[] = Array.isArray(res.data) ? res.data : [];
 
                 const rawRegencies = data
                     .filter(item => item.regency)
@@ -173,7 +173,7 @@ export default function SearchAutocomplete({
             try {
                 setLoadingProps(true);
                 const res = await getAllProperties({ limit: 4, page: 1 });
-                const data: any[] = res.data?.property || res.data || [];
+                const data: any[] = Array.isArray(res.data) ? res.data : [];
                 data.forEach((item: any) => {
                     items.push({
                         type: 'property',
@@ -243,7 +243,7 @@ export default function SearchAutocomplete({
         try {
             setLoadingProps(true);
             const res = await getAllProperties({ keyword: q.trim(), limit: 4, page: 1 });
-            const data: any[] = res.data?.property || res.data || [];
+            const data: any[] = Array.isArray(res.data) ? res.data : [];
             data.forEach((item: any) => {
                 items.push({
                     type: 'property',
@@ -263,10 +263,10 @@ export default function SearchAutocomplete({
     /* Debounce build suggestions */
     useEffect(() => {
         if (!open) return;
-        clearTimeout(debounceRef.current);
+        if (debounceRef.current) clearTimeout(debounceRef.current);
         const delay = query.trim() ? 300 : 0;
         debounceRef.current = setTimeout(() => buildSuggestions(query), delay);
-        return () => clearTimeout(debounceRef.current);
+        return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
     }, [query, open, buildSuggestions]);
 
     /* ── Group suggestions ── */

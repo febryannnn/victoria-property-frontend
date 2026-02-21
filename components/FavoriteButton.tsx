@@ -76,8 +76,8 @@ export default function FavoriteButton({ propertyId, propertyTitle }: FavoriteBu
             <Button
                 variant="outline"
                 className={`w-full h-11 transition-all duration-200 ${isFavorited
-                        ? "border-2 border-victoria-red bg-victoria-red/10 text-victoria-red hover:bg-victoria-red hover:text-white"
-                        : "border-2 border-gray-200 hover:border-victoria-red hover:text-victoria-red"
+                    ? "border-2 border-victoria-red bg-victoria-red/10 text-victoria-red hover:bg-victoria-red hover:text-white"
+                    : "border-2 border-gray-200 hover:border-victoria-red hover:text-victoria-red"
                     }`}
                 onClick={handleButtonClick}
                 disabled={loading || toggling}
@@ -112,8 +112,8 @@ export default function FavoriteButton({ propertyId, propertyTitle }: FavoriteBu
                             >
                                 <Heart
                                     className={`w-10 h-10 transition-all duration-300 ${isFavorited
-                                            ? "text-muted-foreground"
-                                            : "text-victoria-red fill-victoria-red animate-[heartbeat_1.2s_ease-in-out_infinite]"
+                                        ? "text-muted-foreground"
+                                        : "text-victoria-red fill-victoria-red animate-[heartbeat_1.2s_ease-in-out_infinite]"
                                         }`}
                                 />
                                 {!isFavorited && (
@@ -157,8 +157,8 @@ export default function FavoriteButton({ propertyId, propertyTitle }: FavoriteBu
                         <AlertDialogAction
                             onClick={handleConfirm}
                             className={`sm:w-32 transition-all duration-200 hover:scale-105 ${isFavorited
-                                    ? "bg-muted-foreground hover:bg-muted-foreground/90"
-                                    : "bg-victoria-red hover:bg-victoria-red/90 hover:shadow-lg hover:shadow-victoria-red/25"
+                                ? "bg-muted-foreground hover:bg-muted-foreground/90"
+                                : "bg-victoria-red hover:bg-victoria-red/90 hover:shadow-lg hover:shadow-victoria-red/25"
                                 }`}
                         >
                             {toggling ? (

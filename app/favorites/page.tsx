@@ -45,7 +45,7 @@ export default function FavoritesPage() {
         console.log("Data favorit yang diterima:", data);
         setFavorites(data);
       } catch (err) {
-        setError(err.message);
+        setError(err instanceof Error ? err.message : "Terjadi kesalahan");
       } finally {
         setLoading(false);
       }

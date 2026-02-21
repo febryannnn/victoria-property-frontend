@@ -1,5 +1,4 @@
 'use client';
-
 import { useEffect, useRef } from 'react';
 import type { Map as LeafletMap } from 'leaflet';
 
@@ -20,6 +19,7 @@ export default function PropertyMap({
     const mapRef = useRef<HTMLDivElement>(null);
     const mapInstanceRef = useRef<LeafletMap | null>(null);
 
+
     useEffect(() => {
         let map: LeafletMap;
 
@@ -27,7 +27,6 @@ export default function PropertyMap({
             if (!mapRef.current || mapInstanceRef.current) return;
 
             const L = await import('leaflet');
-            await import('leaflet/dist/leaflet.css');
 
             map = L.map(mapRef.current).setView(
                 [center.lat, center.lng],

@@ -119,7 +119,7 @@ export default function PropertyAdminCard({ property, onEdit }: PropertyCardProp
                     <div className="space-y-0.5 min-w-0">
                         <p className="text-xs text-muted-foreground font-medium">Price</p>
                         <p className="text-base sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-[#5B0F1A] to-[#8B1526] bg-clip-text text-transparent truncate">
-                            {formatPrice(property.price)}
+                            Rp {property.price.toLocaleString("id-ID")}
                         </p>
                     </div>
                     <Button

@@ -74,7 +74,7 @@ function InfoCard({
   details,
   delay,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   title: string;
   details: string[];
   delay: number;

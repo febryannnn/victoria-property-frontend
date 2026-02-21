@@ -31,9 +31,19 @@ export interface Property {
 export interface GetAllPropertyResponse {
     success: boolean;
     message: string;
-    data: {
-        property: Property[];
+    data: Property[];
+    meta?: {
+        current_page: number;
+        limit: number;
         total?: number;
+    };
+}
+
+export interface GetPropertyByIdResponse {
+    success: boolean;
+    message: string;
+    data: {
+        property: Property;
     };
 }
 
