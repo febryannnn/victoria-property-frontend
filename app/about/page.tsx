@@ -79,7 +79,7 @@ function StatCard({
   targetValue: number;
   suffix: string;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   delay: number;
 }) {
   const { count, ref } = useCountUp(targetValue, 2000);
