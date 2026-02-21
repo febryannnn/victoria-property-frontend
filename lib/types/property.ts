@@ -33,6 +33,7 @@ export interface GetAllPropertyResponse {
     message: string;
     data: {
         property: Property[];
+        total?: number;
     };
 }
 
