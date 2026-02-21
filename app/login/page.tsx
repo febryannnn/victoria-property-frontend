@@ -47,7 +47,7 @@ export default function LoginPage() {
       console.log(res)
 
       if (res.data.user.role === 1) {
-        router.push("/admin/dashboard");
+        router.push("/admin/properties");
       } else {
         router.push("/");
       }
