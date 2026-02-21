@@ -134,7 +134,7 @@ export default function DashboardPage() {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-3">
+                {/* <div className="flex items-center gap-3">
                     <Badge variant="outline" className="px-4 py-2 border-[#5B0F1A]/20 text-[#5B0F1A]">
                         <Activity className="h-3 w-3 mr-2" />
                         Live Updates
@@ -142,7 +142,7 @@ export default function DashboardPage() {
                     <Button className="bg-gradient-to-r from-[#5B0F1A] to-[#7A1424] hover:from-[#7A1424] hover:to-[#5B0F1A] text-white shadow-lg">
                         Generate Report
                     </Button>
-                </div>
+                </div> */}
             </div>
 
             {/* Main Stats Grid with Enhanced Design */}

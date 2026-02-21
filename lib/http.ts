@@ -13,8 +13,8 @@ export async function apiFetch<T>(
     cache: "no-store",
   });
 
-  console.log("FETCHING:", `${API_URL}${path}`);
-  console.log("STATUS:", res.status);
+  // console.log("FETCHING:", `${API_URL}${path}`);
+  // console.log("STATUS:", res.status);
 
   const text = await res.text();
 

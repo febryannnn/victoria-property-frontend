@@ -191,7 +191,7 @@ const Navbar = () => {
 
                         <button
                           onClick={handleLogout}
-                          className="flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-muted text-red-500"
+                          className="flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-muted text-victoria-red"
                         >
                           <LogOut className="w-4 h-4" />
                           Logout
@@ -268,7 +268,7 @@ const Navbar = () => {
                           handleLogout();
                           setIsOpen(false);
                         }}
-                        className="w-full bg-red-500"
+                        className="w-full bg-victoria-red"
                       >
                         Logout
                       </Button>

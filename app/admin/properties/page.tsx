@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import PropertyCard from "@/components/properties/PropertyCard";
+import PropertyAdminCard from "@/components/properties/PropertyAdminCard";
 import PropertyFormModal from "@/components/properties/PropertyFormModal";
 import DeletePropertyModal from "@/components/properties/DeletePropertyModal";
 import { Property } from "@/lib/types/property";
@@ -32,8 +32,8 @@ export default function PropertiesPage() {
     // ── Filter states ──
     const [searchQuery, setSearchQuery] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
-    const [locationFilter, setLocationFilter] = useState("all");   // regency
-    const [provinceFilter, setProvinceFilter] = useState("all");   // province ← BARU
+    const [locationFilter, setLocationFilter] = useState("all");
+    const [provinceFilter, setProvinceFilter] = useState("all");
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [showFilters, setShowFilters] = useState(false);
     const [propertyType, setPropertyType] = useState("all");
@@ -46,7 +46,6 @@ export default function PropertiesPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(12);
 
-    // Debounce search 400ms (dipakai saat user ketik manual di autocomplete)
     useEffect(() => {
         const timer = setTimeout(() => {
             setDebouncedSearch(searchQuery);
@@ -163,18 +162,15 @@ export default function PropertiesPage() {
         setSortBy("newest"); setCurrentPage(1);
     };
 
-    // ── Handler autocomplete ──
     const handleAutocompleteSearch = (label: string, filterParams: SuggestionItem['filterParams']) => {
-        // Reset semua filter lokasi & keyword dulu
         setSearchQuery('');
         setDebouncedSearch('');
         setLocationFilter('all');
         setProvinceFilter('all');
 
-        // Terapkan sesuai tipe suggestion
         if (filterParams.keyword) {
             setSearchQuery(filterParams.keyword);
-            setDebouncedSearch(filterParams.keyword); // langsung tanpa debounce
+            setDebouncedSearch(filterParams.keyword);
         }
         if (filterParams.regency) setLocationFilter(filterParams.regency);
         if (filterParams.province) setProvinceFilter(filterParams.province);
@@ -226,72 +222,96 @@ export default function PropertiesPage() {
     }
 
     return (
-        <div className="p-8 space-y-8">
+        <div className="p-4 sm:p-6 lg:p-8 space-y-6 sm:space-y-8">
 
             {/* ── Header ── */}
-            <div className="flex flex-col gap-6">
-                <div className="flex items-start justify-between">
-                    <div className="space-y-2">
+            <div className="flex flex-col gap-4 sm:gap-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    {/* Title block */}
+                    <div className="space-y-2 min-w-0">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-[#5B0F1A]/10 rounded-lg">
-                                <Building2 className="h-6 w-6 text-[#5B0F1A]" />
+                            <div className="p-2 bg-[#5B0F1A]/10 rounded-lg shrink-0">
+                                <Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-[#5B0F1A]" />
                             </div>
-                            <h1 className="text-4xl font-bold bg-gradient-to-r from-[#5B0F1A] to-[#8B1526] bg-clip-text text-transparent">
+                            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#5B0F1A] to-[#8B1526] bg-clip-text text-transparent">
                                 Properties
                             </h1>
                         </div>
-                        <p className="text-muted-foreground flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2 text-muted-foreground text-sm">
                             <span>Manage and organize your property portfolio</span>
                             {activeFiltersCount > 0 && (
-                                <Badge variant="secondary" className="ml-2">
+                                <Badge variant="secondary">
                                     {activeFiltersCount} filter{activeFiltersCount > 1 ? "s" : ""} active
                                 </Badge>
                             )}
-                        </p>
+                        </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    {/* Action buttons — responsive */}
+                    <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                         <Button
                             onClick={() => setShowDeleteModal(true)}
                             variant="outline"
-                            className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300 transition-all"
+                            className="flex-1 sm:flex-none border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300 transition-all text-sm h-9 sm:h-10"
                             disabled={statsCount.total === 0}
                         >
-                            <Trash2 size={18} className="mr-2" /> Delete
+                            <Trash2 size={16} className="mr-1.5 sm:mr-2 shrink-0" />
+                            <span>Delete</span>
                         </Button>
                         <Button
                             onClick={() => { setSelectedProperty(null); setFormMode("create"); setShowFormModal(true); }}
-                            className="bg-gradient-to-r from-[#5B0F1A] to-[#7A1424] hover:from-[#7A1424] hover:to-[#5B0F1A] text-white shadow-lg shadow-[#5B0F1A]/20 transition-all"
+                            className="flex-1 sm:flex-none bg-gradient-to-r from-[#5B0F1A] to-[#7A1424] hover:from-[#7A1424] hover:to-[#5B0F1A] text-white shadow-lg shadow-[#5B0F1A]/20 transition-all text-sm h-9 sm:h-10"
                         >
-                            <PlusCircle size={18} className="mr-2" /> Add Property
+                            <PlusCircle size={16} className="mr-1.5 sm:mr-2 shrink-0" />
+                            <span>Add Property</span>
                         </Button>
                     </div>
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                     <Card className="border-l-4 border-l-[#5B0F1A] bg-gradient-to-br from-white to-gray-50">
-                        <CardContent className="p-4 flex items-center justify-between">
-                            <div><p className="text-sm text-muted-foreground font-medium">Total Properties</p><p className="text-3xl font-bold text-[#5B0F1A] mt-1">{statsCount.total}</p></div>
-                            <div className="p-3 bg-[#5B0F1A]/10 rounded-lg"><Building2 className="h-6 w-6 text-[#5B0F1A]" /></div>
+                        <CardContent className="p-3 sm:p-4 flex items-center justify-between">
+                            <div>
+                                <p className="text-xs sm:text-sm text-muted-foreground font-medium">Total Properties</p>
+                                <p className="text-2xl sm:text-3xl font-bold text-[#5B0F1A] mt-1">{statsCount.total}</p>
+                            </div>
+                            <div className="p-2 sm:p-3 bg-[#5B0F1A]/10 rounded-lg hidden sm:block">
+                                <Building2 className="h-5 w-5 sm:h-6 sm:w-6 text-[#5B0F1A]" />
+                            </div>
                         </CardContent>
                     </Card>
                     <Card className="border-l-4 border-l-emerald-500 bg-gradient-to-br from-white to-emerald-50/30">
-                        <CardContent className="p-4 flex items-center justify-between">
-                            <div><p className="text-sm text-muted-foreground font-medium">Active Listings</p><p className="text-3xl font-bold text-emerald-600 mt-1">{statsCount.total}</p></div>
-                            <div className="p-3 bg-emerald-100 rounded-lg"><Sparkles className="h-6 w-6 text-emerald-600" /></div>
+                        <CardContent className="p-3 sm:p-4 flex items-center justify-between">
+                            <div>
+                                <p className="text-xs sm:text-sm text-muted-foreground font-medium">Active Listings</p>
+                                <p className="text-2xl sm:text-3xl font-bold text-emerald-600 mt-1">{statsCount.total}</p>
+                            </div>
+                            <div className="p-2 sm:p-3 bg-emerald-100 rounded-lg hidden sm:block">
+                                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-emerald-600" />
+                            </div>
                         </CardContent>
                     </Card>
                     <Card className="border-l-4 border-l-blue-500 bg-gradient-to-br from-white to-blue-50/30">
-                        <CardContent className="p-4 flex items-center justify-between">
-                            <div><p className="text-sm text-muted-foreground font-medium">For Sale</p><p className="text-3xl font-bold text-blue-600 mt-1">{statsCount.forSale}</p></div>
-                            <div className="p-3 bg-blue-100 rounded-lg"><TrendingUp className="h-6 w-6 text-blue-600" /></div>
+                        <CardContent className="p-3 sm:p-4 flex items-center justify-between">
+                            <div>
+                                <p className="text-xs sm:text-sm text-muted-foreground font-medium">For Sale</p>
+                                <p className="text-2xl sm:text-3xl font-bold text-blue-600 mt-1">{statsCount.forSale}</p>
+                            </div>
+                            <div className="p-2 sm:p-3 bg-blue-100 rounded-lg hidden sm:block">
+                                <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" />
+                            </div>
                         </CardContent>
                     </Card>
                     <Card className="border-l-4 border-l-amber-500 bg-gradient-to-br from-white to-amber-50/30">
-                        <CardContent className="p-4 flex items-center justify-between">
-                            <div><p className="text-sm text-muted-foreground font-medium">Showing</p><p className="text-3xl font-bold text-amber-600 mt-1">{properties.length}</p></div>
-                            <div className="p-3 bg-amber-100 rounded-lg"><Filter className="h-6 w-6 text-amber-600" /></div>
+                        <CardContent className="p-3 sm:p-4 flex items-center justify-between">
+                            <div>
+                                <p className="text-xs sm:text-sm text-muted-foreground font-medium">Showing</p>
+                                <p className="text-2xl sm:text-3xl font-bold text-amber-600 mt-1">{properties.length}</p>
+                            </div>
+                            <div className="p-2 sm:p-3 bg-amber-100 rounded-lg hidden sm:block">
+                                <Filter className="h-5 w-5 sm:h-6 sm:w-6 text-amber-600" />
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
@@ -299,21 +319,24 @@ export default function PropertiesPage() {
 
             {/* ── Search & Filter Card ── */}
             <Card className="shadow-md border-0 bg-gradient-to-br from-white to-gray-50/50">
-                <CardContent className="p-6 space-y-4">
+                <CardContent className="p-4 sm:p-6 space-y-4">
 
-                    {/* ── Search Autocomplete row ── */}
-                    <div className="flex flex-col lg:flex-row gap-4 items-start">
-                        {/* Autocomplete — menggantikan Input search lama */}
-                        <div className="flex-1 min-w-0">
+                    {/* Search + quick filters */}
+                    <div className="flex flex-col gap-3">
+                        {/* Autocomplete — full width on mobile */}
+                        <div className="w-full">
                             <SearchAutocomplete
                                 placeholder="Search by title, city, province, or address..."
                                 onSearch={handleAutocompleteSearch}
                             />
                         </div>
 
-                        <div className="flex flex-wrap gap-3 shrink-0">
+                        {/* Quick filter row — wraps on mobile */}
+                        <div className="flex flex-wrap gap-2 sm:gap-3">
                             <Select value={propertyType} onValueChange={handleFilterChange(setPropertyType)}>
-                                <SelectTrigger className="w-[100px] h-14 border-gray-200 bg-white"><SelectValue placeholder="Property Type" /></SelectTrigger>
+                                <SelectTrigger className="w-[110px] sm:w-[120px] h-10 sm:h-14 border-gray-200 bg-white text-xs sm:text-sm">
+                                    <SelectValue placeholder="Type" />
+                                </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Types</SelectItem>
                                     <SelectItem value="1">House</SelectItem>
@@ -324,7 +347,9 @@ export default function PropertiesPage() {
                             </Select>
 
                             <Select value={statusFilter} onValueChange={handleFilterChange(setStatusFilter)}>
-                                <SelectTrigger className="w-[120px] h-14 border-gray-200 bg-white"><SelectValue placeholder="Status" /></SelectTrigger>
+                                <SelectTrigger className="w-[110px] sm:w-[120px] h-10 sm:h-14 border-gray-200 bg-white text-xs sm:text-sm">
+                                    <SelectValue placeholder="Status" />
+                                </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Status</SelectItem>
                                     <SelectItem value="sale">For Sale</SelectItem>
@@ -333,7 +358,9 @@ export default function PropertiesPage() {
                             </Select>
 
                             <Select value={priceRange} onValueChange={handleFilterChange(setPriceRange)}>
-                                <SelectTrigger className="w-[120px] h-14 border-gray-200 bg-white"><SelectValue placeholder="Price Range" /></SelectTrigger>
+                                <SelectTrigger className="w-[120px] sm:w-[130px] h-10 sm:h-14 border-gray-200 bg-white text-xs sm:text-sm">
+                                    <SelectValue placeholder="Price" />
+                                </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Prices</SelectItem>
                                     <SelectItem value="0-1m">Under 1M</SelectItem>
@@ -346,18 +373,25 @@ export default function PropertiesPage() {
 
                             <Button
                                 variant={showFilters ? "default" : "outline"}
-                                className={`h-14 ${showFilters ? "bg-[#5B0F1A] hover:bg-[#7A1424]" : "border-gray-200 hover:bg-gray-50"}`}
+                                className={`h-10 sm:h-14 text-xs sm:text-sm ${showFilters ? "bg-[#5B0F1A] hover:bg-[#7A1424]" : "border-gray-200 hover:bg-gray-50"}`}
                                 onClick={() => setShowFilters(!showFilters)}
                             >
-                                <SlidersHorizontal className="h-4 w-4 mr-2" />
-                                Advanced
-                                {activeFiltersCount > 0 && <Badge className="ml-2 bg-white text-[#5B0F1A] text-xs">{activeFiltersCount}</Badge>}
-                                <ChevronDown className={`h-4 w-4 ml-2 transition-transform duration-200 ${showFilters ? "rotate-180" : ""}`} />
+                                <SlidersHorizontal className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
+                                <span className="hidden xs:inline">Advanced</span>
+                                {activeFiltersCount > 0 && (
+                                    <Badge className="ml-1.5 sm:ml-2 bg-white text-[#5B0F1A] text-xs">{activeFiltersCount}</Badge>
+                                )}
+                                <ChevronDown className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ml-1.5 sm:ml-2 transition-transform duration-200 ${showFilters ? "rotate-180" : ""}`} />
                             </Button>
 
                             {activeFiltersCount > 0 && (
-                                <Button variant="ghost" className="h-14 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={handleResetFilters}>
-                                    <X className="h-4 w-4 mr-2" /> Reset ({activeFiltersCount})
+                                <Button
+                                    variant="ghost"
+                                    className="h-10 sm:h-14 text-xs sm:text-sm text-red-500 hover:text-red-700 hover:bg-red-50"
+                                    onClick={handleResetFilters}
+                                >
+                                    <X className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                                    Reset ({activeFiltersCount})
                                 </Button>
                             )}
                         </div>
@@ -390,7 +424,7 @@ export default function PropertiesPage() {
                     {/* Advanced filter panel */}
                     {showFilters && (
                         <div className="pt-4 border-t border-gray-200 animate-in slide-in-from-top-2 duration-300">
-                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
                                 {[
                                     { value: bedroomsFilter, setter: setBedroomsFilter, placeholder: "Bedrooms", items: [["all", "Any Beds"], ["1", "1 Bedroom"], ["2", "2 Bedrooms"], ["3", "3 Bedrooms"], ["4", "4+ Bedrooms"]] },
                                     { value: bathroomsFilter, setter: setBathroomsFilter, placeholder: "Bathrooms", items: [["all", "Any Baths"], ["1", "1 Bathroom"], ["2", "2 Bathrooms"], ["3", "3+ Bathrooms"]] },
@@ -398,14 +432,14 @@ export default function PropertiesPage() {
                                     { value: sortBy, setter: setSortBy, placeholder: "Sort by", items: [["newest", "Newest First"], ["price-low", "Price: Low to High"], ["price-high", "Price: High to Low"]] },
                                 ].map(({ value, setter, placeholder, items }) => (
                                     <Select key={placeholder} value={value} onValueChange={handleFilterChange(setter)}>
-                                        <SelectTrigger className="bg-white"><SelectValue placeholder={placeholder} /></SelectTrigger>
+                                        <SelectTrigger className="bg-white text-xs sm:text-sm"><SelectValue placeholder={placeholder} /></SelectTrigger>
                                         <SelectContent>
                                             {items.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
                                 ))}
-                                <Button variant="outline" onClick={handleResetFilters} className="border-gray-200 hover:bg-gray-50">
-                                    <X className="h-4 w-4 mr-2" /> Reset All
+                                <Button variant="outline" onClick={handleResetFilters} className="border-gray-200 hover:bg-gray-50 text-xs sm:text-sm col-span-2 sm:col-span-1">
+                                    <X className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5" /> Reset All
                                 </Button>
                             </div>
                         </div>
@@ -414,21 +448,23 @@ export default function PropertiesPage() {
             </Card>
 
             {/* ── Results Header ── */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="flex items-center gap-3">
-                    <p className="text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                         Showing <span className="font-bold text-foreground">{totalCount === 0 ? 0 : startIndex + 1}–{endIndex}</span> of{" "}
                         <span className="font-bold text-foreground">{totalCount}</span> properties
                     </p>
-                    {activeFiltersCount > 0 && <Badge variant="secondary" className="bg-[#5B0F1A]/10 text-[#5B0F1A]">Filtered</Badge>}
+                    {activeFiltersCount > 0 && <Badge variant="secondary" className="bg-[#5B0F1A]/10 text-[#5B0F1A] text-xs">Filtered</Badge>}
                     {loading && properties.length > 0 && (
                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#5B0F1A] border-t-transparent" />
                     )}
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
                     <Select value={sortBy} onValueChange={handleFilterChange(setSortBy)}>
-                        <SelectTrigger className="w-[180px] border-gray-200 bg-white"><SelectValue placeholder="Sort by" /></SelectTrigger>
+                        <SelectTrigger className="flex-1 sm:w-[180px] border-gray-200 bg-white text-xs sm:text-sm">
+                            <SelectValue placeholder="Sort by" />
+                        </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="newest">Newest First</SelectItem>
                             <SelectItem value="price-low">Price: Low to High</SelectItem>
@@ -436,11 +472,11 @@ export default function PropertiesPage() {
                         </SelectContent>
                     </Select>
 
-                    <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                    <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 shrink-0">
                         {(["grid", "list"] as const).map((mode) => (
                             <Button key={mode} variant="ghost" size="sm" onClick={() => setViewMode(mode)}
-                                className={`h-9 w-9 p-0 ${viewMode === mode ? "bg-white text-[#5B0F1A] shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-                                {mode === "grid" ? <Grid3X3 className="h-4 w-4" /> : <List className="h-4 w-4" />}
+                                className={`h-8 w-8 sm:h-9 sm:w-9 p-0 ${viewMode === mode ? "bg-white text-[#5B0F1A] shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                                {mode === "grid" ? <Grid3X3 className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <List className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
                             </Button>
                         ))}
                     </div>
@@ -450,29 +486,31 @@ export default function PropertiesPage() {
             {/* ── Property Grid ── */}
             {properties.length === 0 && !loading ? (
                 <Card className="border-2 border-dashed border-gray-200">
-                    <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                        <div className="p-4 bg-gray-100 rounded-full mb-4"><Building2 className="h-10 w-10 text-gray-400" /></div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    <CardContent className="flex flex-col items-center justify-center py-12 sm:py-16 text-center px-4">
+                        <div className="p-4 bg-gray-100 rounded-full mb-4"><Building2 className="h-8 w-8 sm:h-10 sm:w-10 text-gray-400" /></div>
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
                             {statsCount.total === 0 ? "No properties yet" : "No properties match your filters"}
                         </h3>
-                        <p className="text-muted-foreground mb-6 max-w-sm">
+                        <p className="text-sm text-muted-foreground mb-6 max-w-sm">
                             {statsCount.total === 0 ? "Get started by creating your first property listing" : "Try adjusting your search criteria or filters"}
                         </p>
                         {statsCount.total === 0 ? (
                             <Button onClick={() => { setSelectedProperty(null); setFormMode("create"); setShowFormModal(true); }}
-                                className="bg-gradient-to-r from-[#5B0F1A] to-[#7A1424] text-white">
-                                <PlusCircle size={18} className="mr-2" /> Create First Property
+                                className="bg-gradient-to-r from-[#5B0F1A] to-[#7A1424] text-white text-sm">
+                                <PlusCircle size={16} className="mr-2" /> Create First Property
                             </Button>
                         ) : (
-                            <Button onClick={handleResetFilters} variant="outline"><X className="h-4 w-4 mr-2" /> Clear All Filters</Button>
+                            <Button onClick={handleResetFilters} variant="outline" className="text-sm">
+                                <X className="h-4 w-4 mr-2" /> Clear All Filters
+                            </Button>
                         )}
                     </CardContent>
                 </Card>
             ) : (
                 <>
-                    <div className={`grid gap-6 transition-opacity duration-200 ${loading ? "opacity-50 pointer-events-none" : "opacity-100"} ${viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-4" : "grid-cols-1"}`}>
+                    <div className={`grid gap-4 sm:gap-6 transition-opacity duration-200 ${loading ? "opacity-50 pointer-events-none" : "opacity-100"} ${viewMode === "grid" ? "grid-cols-2 lg:grid-cols-2 xl:grid-cols-4" : "grid-cols-1"}`}>
                         {properties.map((property) => (
-                            <PropertyCard
+                            <PropertyAdminCard
                                 key={property.id}
                                 property={property}
                                 onEdit={(p) => { setSelectedProperty(p); setFormMode("edit"); setShowFormModal(true); }}
@@ -482,20 +520,20 @@ export default function PropertiesPage() {
 
                     {totalPages > 1 && (
                         <>
-                            <div className="flex justify-center items-center mt-12 gap-2">
+                            <div className="flex justify-center items-center mt-8 sm:mt-12 gap-1 sm:gap-2 flex-wrap">
                                 <Button variant="outline" size="icon" onClick={() => handlePageChange(currentPage - 1)}
                                     disabled={currentPage === 1 || loading}
-                                    className="border-gray-200 hover:border-[#5B0F1A] hover:text-[#5B0F1A] disabled:opacity-50">
+                                    className="border-gray-200 hover:border-[#5B0F1A] hover:text-[#5B0F1A] disabled:opacity-50 h-8 w-8 sm:h-10 sm:w-10">
                                     <ChevronLeft className="h-4 w-4" />
                                 </Button>
 
                                 {getPageNumbers().map((page, index) =>
                                     page === "..." ? (
-                                        <span key={`e-${index}`} className="px-2 text-gray-400">...</span>
+                                        <span key={`e-${index}`} className="px-1 sm:px-2 text-gray-400 text-sm">...</span>
                                     ) : (
                                         <Button key={page} variant={currentPage === page ? "default" : "outline"} size="icon"
                                             onClick={() => handlePageChange(page as number)} disabled={loading}
-                                            className={currentPage === page ? "bg-[#5B0F1A] hover:bg-[#7A1424] text-white" : "border-gray-200 hover:border-[#5B0F1A] hover:text-[#5B0F1A]"}>
+                                            className={`h-8 w-8 sm:h-10 sm:w-10 text-xs sm:text-sm ${currentPage === page ? "bg-[#5B0F1A] hover:bg-[#7A1424] text-white" : "border-gray-200 hover:border-[#5B0F1A] hover:text-[#5B0F1A]"}`}>
                                             {page}
                                         </Button>
                                     )
@@ -503,12 +541,12 @@ export default function PropertiesPage() {
 
                                 <Button variant="outline" size="icon" onClick={() => handlePageChange(currentPage + 1)}
                                     disabled={currentPage === totalPages || loading}
-                                    className="border-gray-200 hover:border-[#5B0F1A] hover:text-[#5B0F1A] disabled:opacity-50">
+                                    className="border-gray-200 hover:border-[#5B0F1A] hover:text-[#5B0F1A] disabled:opacity-50 h-8 w-8 sm:h-10 sm:w-10">
                                     <ChevronRight className="h-4 w-4" />
                                 </Button>
                             </div>
-                            <div className="text-center mt-4">
-                                <p className="text-sm text-muted-foreground">
+                            <div className="text-center mt-3 sm:mt-4">
+                                <p className="text-xs sm:text-sm text-muted-foreground">
                                     Page <span className="font-semibold text-[#5B0F1A]">{currentPage}</span> of{" "}
                                     <span className="font-semibold text-[#5B0F1A]">{totalPages}</span>
                                 </p>

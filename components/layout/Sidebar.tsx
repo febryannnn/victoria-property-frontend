@@ -27,9 +27,8 @@ export default function Sidebar() {
     };
 
     const navItems = [
-        { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+        // { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
         { href: "/admin/properties", icon: Home, label: "Properties" },
-        { href: "/admin/users", icon: Users, label: "Users" },
     ];
 
     const NavContent = () => (

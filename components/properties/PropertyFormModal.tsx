@@ -79,14 +79,13 @@ export default function PropertyFormModal({
     }
     const [galleryImages, setGalleryImages] = useState<PropertyImage[]>([]);
     const [loadingGallery, setLoadingGallery] = useState(false);
-    
+
     const fetchGalleryImages = async (propId: number) => {
         try {
             setLoadingGallery(true);
             const res = await getPropertyImages(propId);
-            setGalleryImages(res.data ?? []);  // null → array kosong
+            setGalleryImages(res.data ?? []);
         } catch (err) {
-            // Kalau 404/error pun anggap kosong, bukan error fatal
             setGalleryImages([]);
         } finally {
             setLoadingGallery(false);
@@ -124,11 +123,10 @@ export default function PropertyFormModal({
             setFormData(property);
             setCreatedPropertyId(property.id!);
             if (property.cover_image_url) {
-                setImagePreviews([`http://localhost:8080${property.cover_image_url}`]);
+                setImagePreviews([property.cover_image_url]);
             } else {
                 setImagePreviews([]);
             }
-            // Fetch gallery images
             fetchGalleryImages(property.id!);
         } else {
             setFormData({
@@ -161,6 +159,7 @@ export default function PropertyFormModal({
             setGalleryImages([]);
         }
     }, [property, mode, open]);
+
     const handleChange = (field: keyof Property, value: any) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
     };
@@ -178,14 +177,11 @@ export default function PropertyFormModal({
                     error: (err) => err?.message || "Failed to upload images",
                 }
             );
-            
             setImageFiles([]);
             setImagePreviews(prev => {
-                // Hapus preview "New", sisakan yang "Existing"
                 const serverCount = (property?.cover_image_url && mode === 'edit') ? 1 : 0;
                 return prev.slice(0, serverCount);
             });
-            // Refresh gallery
             await fetchGalleryImages(createdPropertyId);
         } finally {
             setUploading(false);
@@ -199,41 +195,31 @@ export default function PropertyFormModal({
         try {
             setLoading(true);
 
+            const normalizedData: Property = {
+                ...formData,
+                cover_image_url: formData.cover_image_url
+                    ? formData.cover_image_url.replace('http://localhost:8080', '')
+                    : formData.cover_image_url,
+            };
+
             let result: Property;
 
             if (mode === "create") {
                 result = await toast.promise(
-                    createProperty(formData),
-                    {
-                        loading: "Creating property...",
-                        success: "Property created successfully",
-                        error: "Failed to create property",
-                    }
+                    createProperty(normalizedData),
+                    { loading: "Creating property...", success: "Property created successfully", error: "Failed to create property" }
                 );
-
-                // simpan id supaya bisa upload image
                 setCreatedPropertyId(result.id!);
-
             } else {
-                if (!formData.id) {
-                    toast.error("Property ID not found");
-                    return;
-                }
-
+                if (!normalizedData.id) { toast.error("Property ID not found"); return; }
                 result = await toast.promise(
-                    updateProperty(formData.id, formData),
-                    {
-                        loading: "Updating property...",
-                        success: "Property updated successfully",
-                        error: "Failed to update property",
-                    }
+                    updateProperty(normalizedData.id, normalizedData),
+                    { loading: "Updating property...", success: "Property updated successfully", error: "Failed to update property" }
                 );
-
                 setCreatedPropertyId(result.id!);
             }
 
             onSubmit(result);
-
         } finally {
             setLoading(false);
         }
@@ -241,41 +227,43 @@ export default function PropertyFormModal({
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="max-w-4xl max-h-[90vh]">
-                <DialogHeader>
-                    <DialogTitle className="text-2xl text-[#5B0F1A]">
+            {/* Responsive dialog: full-screen on mobile, large modal on desktop */}
+            <DialogContent className="w-full max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl max-h-[100dvh] sm:max-h-[90vh] p-0 gap-0 rounded-none sm:rounded-lg">
+                <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b border-gray-100">
+                    <DialogTitle className="text-lg sm:text-2xl text-[#5B0F1A]">
                         {mode === "create" ? "Create New Property" : "Edit Property"}
                     </DialogTitle>
                 </DialogHeader>
 
-                <ScrollArea className="h-[70vh] pr-4">
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                        
-                        {/* Image Upload */}
-                        <div className="space-y-4">
-                            <h3 className="font-semibold text-[#5B0F1A]">Property Image</h3>
+                <ScrollArea className="h-[calc(100dvh-64px)] sm:h-[75vh] px-4 sm:px-6">
+                    <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6 py-4 sm:py-6">
 
-                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                        {/* ── Image Upload ── */}
+                        <div className="space-y-3 sm:space-y-4">
+                            <h3 className="font-semibold text-[#5B0F1A] text-sm sm:text-base">Property Image</h3>
+
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 sm:p-6">
                                 <div className="text-center">
-                                    <div className="flex justify-center mb-4">
-                                        <div className="p-4 bg-gray-100 rounded-full">
-                                            <ImageIcon size={32} className="text-gray-400" />
+                                    <div className="flex justify-center mb-3 sm:mb-4">
+                                        <div className="p-3 sm:p-4 bg-gray-100 rounded-full">
+                                            <ImageIcon size={24} className="text-gray-400 sm:hidden" />
+                                            <ImageIcon size={32} className="text-gray-400 hidden sm:block" />
                                         </div>
                                     </div>
 
                                     <Label
                                         htmlFor="image-upload"
-                                        className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[#5B0F1A] text-white rounded-lg hover:bg-[#7A1424] transition"
+                                        className="cursor-pointer inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-[#5B0F1A] text-white text-sm rounded-lg hover:bg-[#7A1424] transition"
                                     >
-                                        <Upload size={16} />
+                                        <Upload size={14} />
                                         Upload Images
                                     </Label>
 
                                     {/* Gallery & Cover Image Section */}
                                     {createdPropertyId !== null && (
-                                        <div className="space-y-4">
+                                        <div className="space-y-3 sm:space-y-4 mt-4 text-left">
                                             <div className="flex items-center justify-between">
-                                                <h3 className="font-semibold text-[#5B0F1A]">
+                                                <h3 className="font-semibold text-[#5B0F1A] text-sm sm:text-base">
                                                     Gallery & Cover Image
                                                 </h3>
                                                 <Button
@@ -284,55 +272,60 @@ export default function PropertyFormModal({
                                                     size="sm"
                                                     onClick={() => fetchGalleryImages(createdPropertyId)}
                                                     disabled={loadingGallery}
+                                                    className="text-xs sm:text-sm h-7 sm:h-8"
                                                 >
                                                     {loadingGallery ? "Loading..." : "Refresh"}
                                                 </Button>
                                             </div>
 
                                             {loadingGallery ? (
-                                                <div className="flex justify-center py-8">
-                                                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#5B0F1A] border-t-transparent" />
+                                                <div className="flex justify-center py-6 sm:py-8">
+                                                    <div className="h-7 w-7 sm:h-8 sm:w-8 animate-spin rounded-full border-4 border-[#5B0F1A] border-t-transparent" />
                                                 </div>
                                             ) : galleryImages.length === 0 ? (
-                                                <div className="border-2 border-dashed border-gray-200 rounded-lg p-8 text-center text-gray-400">
-                                                    <ImageIcon size={32} className="mx-auto mb-2 opacity-40" />
-                                                    <p className="text-sm">Belum ada foto. Upload foto terlebih dahulu.</p>
+                                                <div className="border-2 border-dashed border-gray-200 rounded-lg p-5 sm:p-8 text-center text-gray-400">
+                                                    <ImageIcon size={28} className="mx-auto mb-2 opacity-40" />
+                                                    <p className="text-xs sm:text-sm">Belum ada foto. Upload foto terlebih dahulu.</p>
                                                 </div>
                                             ) : (
-                                                <div className="grid grid-cols-3 gap-3">
+                                                /* Gallery grid: 2 cols on mobile, 3 on sm+ */
+                                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                                                     {galleryImages.map((img) => {
-                                                        const isCover = formData.cover_image_url === img.url;
+                                                        const isCover = formData.cover_image_url
+                                                            ? formData.cover_image_url.replace('http://localhost:8080', '') === img.url
+                                                            : false;
                                                         return (
                                                             <div key={img.id} className="relative group rounded-lg overflow-hidden border-2 border-transparent hover:border-[#5B0F1A] transition-all">
                                                                 <img
-                                                                    src={`http://localhost:8080${img.url}`}
-                                                                    className="h-28 w-full object-cover"
+                                                                    src={img.url.startsWith('http') ? img.url : `http://localhost:8080${img.url}`}
+                                                                    className="h-20 sm:h-28 w-full object-cover"
+                                                                    alt=""
                                                                 />
 
-                                                                {/* Cover Badge */}
                                                                 {isCover && (
-                                                                    <span className="absolute top-1 left-1 bg-yellow-500 text-white text-xs px-1.5 py-0.5 rounded font-medium flex items-center gap-1">
-                                                                        <Star size={10} fill="white" /> Cover
+                                                                    <span className="absolute top-1 left-1 bg-yellow-500 text-white text-[10px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded font-medium flex items-center gap-0.5 sm:gap-1">
+                                                                        <Star size={8} fill="white" className="sm:hidden" />
+                                                                        <Star size={10} fill="white" className="hidden sm:block" />
+                                                                        Cover
                                                                     </span>
                                                                 )}
 
-                                                                {/* Action Buttons - tampil saat hover */}
-                                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 sm:gap-2">
                                                                     {!isCover && (
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => handleSetCover(img.id)}
-                                                                            className="bg-yellow-500 hover:bg-yellow-600 text-white text-xs px-2 py-1 rounded flex items-center gap-1"
+                                                                            className="bg-yellow-500 hover:bg-yellow-600 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded flex items-center gap-0.5 sm:gap-1"
                                                                         >
-                                                                            <Star size={12} /> Set Cover
+                                                                            <Star size={10} /> Set Cover
                                                                         </button>
                                                                     )}
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => handleDeleteImage(img.id)}
-                                                                        className="bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1 rounded flex items-center gap-1"
+                                                                        className="bg-red-600 hover:bg-red-700 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded flex items-center gap-0.5 sm:gap-1"
                                                                     >
-                                                                        <X size={12} /> Hapus
+                                                                        <X size={10} /> Hapus
                                                                     </button>
                                                                 </div>
                                                             </div>
@@ -357,17 +350,17 @@ export default function PropertyFormModal({
                                         }}
                                     />
 
-                                    <p className="text-sm text-gray-500 mt-2">
+                                    <p className="text-xs sm:text-sm text-gray-500 mt-2">
                                         PNG, JPG, WEBP up to 5MB
                                     </p>
 
-                                    {/* Multiple Preview */}
+                                    {/* Preview grid: 2 cols mobile, 3 on sm+ */}
                                     {imagePreviews.length > 0 && (
-                                        <div className="mt-6 space-y-3">
-                                            <p className="text-sm font-medium text-gray-600">
+                                        <div className="mt-4 sm:mt-6 space-y-2 sm:space-y-3 text-left">
+                                            <p className="text-xs sm:text-sm font-medium text-gray-600">
                                                 {imagePreviews.length} foto • {imageFiles.length} foto baru dipilih
                                             </p>
-                                            <div className="grid grid-cols-3 gap-4">
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
                                                 {imagePreviews.map((src, index) => {
                                                     const serverPreviewCount = (property?.cover_image_url && mode === 'edit') ? 1 : 0;
                                                     const isExisting = index < serverPreviewCount;
@@ -375,11 +368,10 @@ export default function PropertyFormModal({
                                                         <div key={index} className="relative">
                                                             <img
                                                                 src={src}
-                                                                className="h-24 w-full object-cover rounded-lg"
+                                                                className="h-20 sm:h-24 w-full object-cover rounded-lg"
+                                                                alt=""
                                                             />
-                                                            {/* Badge Existing / New */}
-                                                            <span className={`absolute top-1 left-1 text-white text-xs px-1.5 py-0.5 rounded font-medium ${isExisting ? 'bg-blue-500' : 'bg-green-500'
-                                                                }`}>
+                                                            <span className={`absolute top-1 left-1 text-white text-[10px] sm:text-xs px-1 sm:px-1.5 py-0.5 rounded font-medium ${isExisting ? 'bg-blue-500' : 'bg-green-500'}`}>
                                                                 {isExisting ? 'Existing' : 'New'}
                                                             </span>
                                                             <button
@@ -388,7 +380,6 @@ export default function PropertyFormModal({
                                                                     const newPreviews = [...imagePreviews];
                                                                     newPreviews.splice(index, 1);
                                                                     setImagePreviews(newPreviews);
-
                                                                     const fileIndex = index - serverPreviewCount;
                                                                     if (fileIndex >= 0) {
                                                                         const newFiles = [...imageFiles];
@@ -396,9 +387,9 @@ export default function PropertyFormModal({
                                                                         setImageFiles(newFiles);
                                                                     }
                                                                 }}
-                                                                className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1"
+                                                                className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-0.5 sm:p-1"
                                                             >
-                                                                <X size={14} />
+                                                                <X size={12} />
                                                             </button>
                                                         </div>
                                                     );
@@ -406,9 +397,7 @@ export default function PropertyFormModal({
                                             </div>
                                         </div>
                                     )}
-                                    
                                 </div>
-                                
                             </div>
                         </div>
 
@@ -417,58 +406,54 @@ export default function PropertyFormModal({
                                 type="button"
                                 onClick={handleUploadImages}
                                 disabled={uploading || imageFiles.length === 0}
-                                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white"
+                                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white text-sm"
                             >
                                 {uploading ? "Uploading..." : "Upload Images"}
                             </Button>
                         )}
 
-                        {/* Basic Information */}
-                        <div className="space-y-4">
-                            <h3 className="font-semibold text-[#5B0F1A]">Basic Information</h3>
+                        {/* ── Basic Information ── */}
+                        <div className="space-y-3 sm:space-y-4">
+                            <h3 className="font-semibold text-[#5B0F1A] text-sm sm:text-base">Basic Information</h3>
 
                             <div>
-                                <Label>Property Title</Label>
+                                <Label className="text-xs sm:text-sm">Property Title</Label>
                                 <Input
                                     value={formData.title}
                                     onChange={(e) => handleChange("title", e.target.value)}
                                     placeholder="Apartemen Modern Gamping"
-                                    className="focus-visible:ring-[#5B0F1A]"
+                                    className="focus-visible:ring-[#5B0F1A] text-sm h-9 sm:h-10"
                                     required
                                 />
                             </div>
 
                             <div>
-                                <Label>Description</Label>
+                                <Label className="text-xs sm:text-sm">Description</Label>
                                 <Textarea
                                     value={formData.description}
                                     onChange={(e) => handleChange("description", e.target.value)}
                                     placeholder="Lokasi strategis, dekat pasar dan sekolah."
-                                    className="focus-visible:ring-[#5B0F1A] min-h-[100px]"
+                                    className="focus-visible:ring-[#5B0F1A] min-h-[80px] sm:min-h-[100px] text-sm"
                                     required
                                 />
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                 <div>
-                                    <Label>Price (Rp)</Label>
+                                    <Label className="text-xs sm:text-sm">Price (Rp)</Label>
                                     <Input
                                         type="number"
                                         value={formData.price}
                                         onChange={(e) => handleChange("price", Number(e.target.value))}
                                         placeholder="68000000"
-                                        className="focus-visible:ring-[#5B0F1A]"
+                                        className="focus-visible:ring-[#5B0F1A] text-sm h-9 sm:h-10"
                                         required
                                     />
                                 </div>
-
                                 <div>
-                                    <Label>Sale Type</Label>
-                                    <Select
-                                        value={formData.sale_type}
-                                        onValueChange={(value) => handleChange("sale_type", value)}
-                                    >
-                                        <SelectTrigger className="focus:ring-[#5B0F1A]">
+                                    <Label className="text-xs sm:text-sm">Sale Type</Label>
+                                    <Select value={formData.sale_type} onValueChange={(value) => handleChange("sale_type", value)}>
+                                        <SelectTrigger className="focus:ring-[#5B0F1A] text-sm h-9 sm:h-10">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -479,28 +464,22 @@ export default function PropertyFormModal({
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                 <div>
-                                    <Label>Property Type ID</Label>
+                                    <Label className="text-xs sm:text-sm">Property Type ID</Label>
                                     <Input
                                         type="number"
                                         value={formData.property_type_id}
-                                        onChange={(e) =>
-                                            handleChange("property_type_id", Number(e.target.value))
-                                        }
+                                        onChange={(e) => handleChange("property_type_id", Number(e.target.value))}
                                         placeholder="1"
-                                        className="focus-visible:ring-[#5B0F1A]"
+                                        className="focus-visible:ring-[#5B0F1A] text-sm h-9 sm:h-10"
                                         required
                                     />
                                 </div>
-
                                 <div>
-                                    <Label>Status</Label>
-                                    <Select
-                                        value={formData.status.toString()}
-                                        onValueChange={(value) => handleChange("status", Number(value))}
-                                    >
-                                        <SelectTrigger className="focus:ring-[#5B0F1A]">
+                                    <Label className="text-xs sm:text-sm">Status</Label>
+                                    <Select value={formData.status.toString()} onValueChange={(value) => handleChange("status", Number(value))}>
+                                        <SelectTrigger className="focus:ring-[#5B0F1A] text-sm h-9 sm:h-10">
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -512,55 +491,55 @@ export default function PropertyFormModal({
                             </div>
                         </div>
 
-                        {/* Location */}
-                        <div className="space-y-4">
-                            <h3 className="font-semibold text-[#5B0F1A]">Location</h3>
+                        {/* ── Location ── */}
+                        <div className="space-y-3 sm:space-y-4">
+                            <h3 className="font-semibold text-[#5B0F1A] text-sm sm:text-base">Location</h3>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {/* Province / Regency / District: stack on mobile, 3 cols on md+ */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                                 <div>
-                                    <Label>Province</Label>
+                                    <Label className="text-xs sm:text-sm">Province</Label>
                                     <Input
                                         value={formData.province}
                                         onChange={(e) => handleChange("province", e.target.value)}
                                         placeholder="DIY"
-                                        className="focus-visible:ring-[#5B0F1A]"
+                                        className="focus-visible:ring-[#5B0F1A] text-sm h-9 sm:h-10"
                                         required
                                     />
                                 </div>
-
                                 <div>
-                                    <Label>Regency</Label>
+                                    <Label className="text-xs sm:text-sm">Regency</Label>
                                     <Input
                                         value={formData.regency}
                                         onChange={(e) => handleChange("regency", e.target.value)}
                                         placeholder="Sleman"
-                                        className="focus-visible:ring-[#5B0F1A]"
+                                        className="focus-visible:ring-[#5B0F1A] text-sm h-9 sm:h-10"
                                         required
                                     />
                                 </div>
-
                                 <div>
-                                    <Label>District</Label>
+                                    <Label className="text-xs sm:text-sm">District</Label>
                                     <Input
                                         value={formData.district}
                                         onChange={(e) => handleChange("district", e.target.value)}
                                         placeholder="Gamping"
-                                        className="focus-visible:ring-[#5B0F1A]"
+                                        className="focus-visible:ring-[#5B0F1A] text-sm h-9 sm:h-10"
                                         required
                                     />
                                 </div>
                             </div>
 
                             <div>
-                                <Label>Full Address</Label>
+                                <Label className="text-xs sm:text-sm">Full Address</Label>
                                 <Input
                                     value={formData.address}
                                     onChange={(e) => handleChange("address", e.target.value)}
                                     placeholder="Jl. Godean KM 6"
-                                    className="focus-visible:ring-[#5B0F1A]"
+                                    className="focus-visible:ring-[#5B0F1A] text-sm h-9 sm:h-10"
                                     required
                                 />
                             </div>
+
                             <LocationPicker
                                 province={formData.province}
                                 regency={formData.regency}
@@ -575,176 +554,113 @@ export default function PropertyFormModal({
                             />
                         </div>
 
-                        {/* Property Details */}
-                        <div className="space-y-4">
-                            <h3 className="font-semibold text-[#5B0F1A]">Property Details</h3>
+                        {/* ── Property Details ── */}
+                        <div className="space-y-3 sm:space-y-4">
+                            <h3 className="font-semibold text-[#5B0F1A] text-sm sm:text-base">Property Details</h3>
 
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div>
-                                    <Label>Building Area (m²)</Label>
-                                    <Input
-                                        type="number"
-                                        value={formData.building_area}
-                                        onChange={(e) =>
-                                            handleChange("building_area", Number(e.target.value))
-                                        }
-                                        placeholder="35"
-                                        className="focus-visible:ring-[#5B0F1A]"
-                                        required
-                                    />
-                                </div>
-
-                                <div>
-                                    <Label>Land Area (m²)</Label>
-                                    <Input
-                                        type="number"
-                                        value={formData.land_area}
-                                        onChange={(e) => handleChange("land_area", Number(e.target.value))}
-                                        placeholder="0"
-                                        className="focus-visible:ring-[#5B0F1A]"
-                                        required
-                                    />
-                                </div>
-
-                                <div>
-                                    <Label>Bedrooms</Label>
-                                    <Input
-                                        type="number"
-                                        value={formData.bedrooms}
-                                        onChange={(e) => handleChange("bedrooms", Number(e.target.value))}
-                                        placeholder="2"
-                                        className="focus-visible:ring-[#5B0F1A]"
-                                        required
-                                    />
-                                </div>
-
-                                <div>
-                                    <Label>Bathrooms</Label>
-                                    <Input
-                                        type="number"
-                                        value={formData.bathrooms}
-                                        onChange={(e) => handleChange("bathrooms", Number(e.target.value))}
-                                        placeholder="1"
-                                        className="focus-visible:ring-[#5B0F1A]"
-                                        required
-                                    />
-                                </div>
+                            {/* 2 cols on mobile, 4 on md+ */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                                {[
+                                    { label: "Building Area (m²)", field: "building_area", placeholder: "35" },
+                                    { label: "Land Area (m²)", field: "land_area", placeholder: "0" },
+                                    { label: "Bedrooms", field: "bedrooms", placeholder: "2" },
+                                    { label: "Bathrooms", field: "bathrooms", placeholder: "1" },
+                                ].map(({ label, field, placeholder }) => (
+                                    <div key={field}>
+                                        <Label className="text-xs sm:text-sm">{label}</Label>
+                                        <Input
+                                            type="number"
+                                            value={(formData as any)[field]}
+                                            onChange={(e) => handleChange(field as keyof Property, Number(e.target.value))}
+                                            placeholder={placeholder}
+                                            className="focus-visible:ring-[#5B0F1A] text-sm h-9 sm:h-10"
+                                            required
+                                        />
+                                    </div>
+                                ))}
                             </div>
 
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div>
-                                    <Label>Floors</Label>
-                                    <Input
-                                        type="number"
-                                        value={formData.floors}
-                                        onChange={(e) => handleChange("floors", Number(e.target.value))}
-                                        placeholder="1"
-                                        className="focus-visible:ring-[#5B0F1A]"
-                                        required
-                                    />
-                                </div>
-
-                                <div>
-                                    <Label>Garage</Label>
-                                    <Input
-                                        type="number"
-                                        value={formData.garage}
-                                        onChange={(e) => handleChange("garage", Number(e.target.value))}
-                                        placeholder="0"
-                                        className="focus-visible:ring-[#5B0F1A]"
-                                        required
-                                    />
-                                </div>
-
-                                <div>
-                                    <Label>Carport</Label>
-                                    <Input
-                                        type="number"
-                                        value={formData.carport}
-                                        onChange={(e) => handleChange("carport", Number(e.target.value))}
-                                        placeholder="1"
-                                        className="focus-visible:ring-[#5B0F1A]"
-                                        required
-                                    />
-                                </div>
-
-                                <div>
-                                    <Label>Year Built</Label>
-                                    <Input
-                                        type="number"
-                                        value={formData.year_constructed}
-                                        onChange={(e) =>
-                                            handleChange("year_constructed", Number(e.target.value))
-                                        }
-                                        placeholder="2024"
-                                        className="focus-visible:ring-[#5B0F1A]"
-                                        required
-                                    />
-                                </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                                {[
+                                    { label: "Floors", field: "floors", placeholder: "1" },
+                                    { label: "Garage", field: "garage", placeholder: "0" },
+                                    { label: "Carport", field: "carport", placeholder: "1" },
+                                    { label: "Year Built", field: "year_constructed", placeholder: "2024" },
+                                ].map(({ label, field, placeholder }) => (
+                                    <div key={field}>
+                                        <Label className="text-xs sm:text-sm">{label}</Label>
+                                        <Input
+                                            type="number"
+                                            value={(formData as any)[field]}
+                                            onChange={(e) => handleChange(field as keyof Property, Number(e.target.value))}
+                                            placeholder={placeholder}
+                                            className="focus-visible:ring-[#5B0F1A] text-sm h-9 sm:h-10"
+                                            required
+                                        />
+                                    </div>
+                                ))}
                             </div>
                         </div>
 
-                        {/* Utilities */}
-                        <div className="space-y-4">
-                            <h3 className="font-semibold text-[#5B0F1A]">Utilities</h3>
+                        {/* ── Utilities ── */}
+                        <div className="space-y-3 sm:space-y-4">
+                            <h3 className="font-semibold text-[#5B0F1A] text-sm sm:text-base">Utilities</h3>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {/* Stack on mobile, 3 cols on sm+ */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                                 <div>
-                                    <Label>Electricity (Watt)</Label>
+                                    <Label className="text-xs sm:text-sm">Electricity (Watt)</Label>
                                     <Input
                                         type="number"
                                         value={formData.electricity}
-                                        onChange={(e) =>
-                                            handleChange("electricity", Number(e.target.value))
-                                        }
+                                        onChange={(e) => handleChange("electricity", Number(e.target.value))}
                                         placeholder="1300"
-                                        className="focus-visible:ring-[#5B0F1A]"
+                                        className="focus-visible:ring-[#5B0F1A] text-sm h-9 sm:h-10"
                                         required
                                     />
                                 </div>
-
                                 <div>
-                                    <Label>Water Source</Label>
+                                    <Label className="text-xs sm:text-sm">Water Source</Label>
                                     <Input
                                         value={formData.water_source}
                                         onChange={(e) => handleChange("water_source", e.target.value)}
                                         placeholder="PDAM"
-                                        className="focus-visible:ring-[#5B0F1A]"
+                                        className="focus-visible:ring-[#5B0F1A] text-sm h-9 sm:h-10"
                                         required
                                     />
                                 </div>
-
                                 <div>
-                                    <Label>Certificate</Label>
+                                    <Label className="text-xs sm:text-sm">Certificate</Label>
                                     <Input
                                         value={formData.certificate}
                                         onChange={(e) => handleChange("certificate", e.target.value)}
                                         placeholder="SHM"
-                                        className="focus-visible:ring-[#5B0F1A]"
+                                        className="focus-visible:ring-[#5B0F1A] text-sm h-9 sm:h-10"
                                         required
                                     />
                                 </div>
                             </div>
                         </div>
 
-                        {/* User ID */}
+                        {/* ── User ID ── */}
                         <div>
-                            <Label>User ID</Label>
+                            <Label className="text-xs sm:text-sm">User ID</Label>
                             <Input
                                 type="number"
                                 value={formData.user_id}
                                 onChange={(e) => handleChange("user_id", Number(e.target.value))}
                                 placeholder="1"
-                                className="focus-visible:ring-[#5B0F1A]"
+                                className="focus-visible:ring-[#5B0F1A] text-sm h-9 sm:h-10"
                                 required
                             />
                         </div>
 
-                        <div className="flex gap-4 pt-4">
+                        {/* ── Actions ── */}
+                        <div className="flex gap-3 sm:gap-4 pt-2 sm:pt-4 pb-2">
                             <Button
                                 type="submit"
                                 disabled={loading}
-                                className="bg-[#5B0F1A] hover:bg-[#7A1424] text-white flex-1"
+                                className="bg-[#5B0F1A] hover:bg-[#7A1424] text-white flex-1 text-sm h-9 sm:h-10"
                             >
                                 {loading
                                     ? "Saving..."
@@ -756,7 +672,7 @@ export default function PropertyFormModal({
                                 type="button"
                                 variant="outline"
                                 onClick={onClose}
-                                className="flex-1"
+                                className="flex-1 text-sm h-9 sm:h-10"
                             >
                                 Cancel
                             </Button>

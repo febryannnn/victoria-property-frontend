@@ -15,6 +15,7 @@ export interface PropertyFilterParams {
     property_type_id?: number;
     province?: string;
     regency?: string;
+    district?: string;
     min_price?: number;
     max_price?: number;
     min_building_area?: number;

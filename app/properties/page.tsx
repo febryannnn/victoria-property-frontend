@@ -116,6 +116,7 @@ function useScrollReveal(threshold = 0.1) {
 }
 
 const Properties = () => {
+  
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -135,6 +136,8 @@ const Properties = () => {
   const [bathroomsFilter, setBathroomsFilter] = useState('all');
   const [landAreaFilter, setLandAreaFilter] = useState('all');
   const [locationFilter, setLocationFilter] = useState(() => searchParams.get('location') ?? 'all'); // regency
+  const [districtFilter, setDistrictFilter] = useState('all');
+
   const [provinceFilter, setProvinceFilter] = useState('all'); // ← BARU: province param
   const [sortBy, setSortBy] = useState('newest');
 
@@ -162,6 +165,7 @@ const Properties = () => {
     landAreaFilter !== 'all',
     locationFilter !== 'all',
     provinceFilter !== 'all', // ← ikut dihitung
+    districtFilter !== 'all', // ← ikut dihitung
   ].filter(Boolean).length;
 
   const totalPages = Math.ceil(totalCount / itemsPerPage);
@@ -181,6 +185,7 @@ const Properties = () => {
     if (propertyType !== 'all') params.property_type_id = parseInt(propertyType);
     if (locationFilter !== 'all') params.regency = locationFilter;   // regency
     if (provinceFilter !== 'all') params.province = provinceFilter;  // ← BARU: province
+    if (districtFilter !== 'all') params.district = districtFilter;  // ← BARU: district
 
     switch (priceRange) {
       case '0-1m': params.max_price = 1_000_000_000; break;
@@ -204,7 +209,21 @@ const Properties = () => {
     }
 
     return params;
-  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, propertyType, locationFilter, provinceFilter, priceRange, landAreaFilter, bathroomsFilter, bedroomsFilter, sortBy]);
+  }, [
+    currentPage,
+    itemsPerPage,
+    debouncedSearch,
+    statusFilter,
+    propertyType,
+    locationFilter,
+    provinceFilter,
+    districtFilter,
+    priceRange,
+    landAreaFilter,
+    bathroomsFilter,
+    bedroomsFilter,
+    sortBy
+  ]);
 
   useEffect(() => {
     fetchProperties();
@@ -250,10 +269,19 @@ const Properties = () => {
         year_constructed: item.year_constructed,
         sale_type: item.sale_type,
         created_at: item.created_at,
-        cover_image_url: item.cover_image_url ? `http://localhost:8080${item.cover_image_url}` : null,
+        cover_image_url: item.cover_image_url
+          ? item.cover_image_url.startsWith('http')
+            ? item.cover_image_url
+            : `http://localhost:8080${item.cover_image_url}`
+          : null,
         property_type_id: item.property_type_id,
         user_id: item.user_id,
-        image: item.cover_image_url ? `http://localhost:8080${item.cover_image_url}` : 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
+        image: item.cover_image_url
+          ? item.cover_image_url.startsWith('http')
+            ? item.cover_image_url
+            : `http://localhost:8080${item.cover_image_url}`
+          : 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
+
         location: `${item.district}, ${item.regency}, ${item.province}`,
         area: item.land_area || item.building_area || 0,
         priceLabel: item.sale_type === 'sewa' ? '/bulan' : undefined,
@@ -467,11 +495,13 @@ const Properties = () => {
                       setDebouncedSearch('');
                       setLocationFilter('all');
                       setProvinceFilter('all');
+                      setDistrictFilter('all')
 
                       // Terapkan filter sesuai tipe suggestion yang dipilih
                       if (filterParams.keyword) setSearchQuery(filterParams.keyword);
                       if (filterParams.regency) setLocationFilter(filterParams.regency);
                       if (filterParams.province) setProvinceFilter(filterParams.province);
+                      if (filterParams.district) setDistrictFilter(filterParams.district);
 
                       setCurrentPage(1);
                     }}
