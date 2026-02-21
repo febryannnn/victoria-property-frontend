@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { ArrowLeft } from "lucide-react";
 
 export default function AuthLayout({
   children,
@@ -29,6 +30,15 @@ export default function AuthLayout({
 
         {/* Gradient overlay to maintain red theme */}
         <div className="absolute inset-0 bg-gradient-to-br from-victoria-maroon via-victoria-red/95 to-victoria-red/20" />
+
+        {/* Back to Home Link */}
+        <Link
+          href="/"
+          className="absolute top-8 left-8 z-20 flex items-center gap-2 text-white/80 hover:text-white transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span>Kembali ke Beranda</span>
+        </Link>
 
         <div className="relative z-10 flex flex-col justify-center px-16 text-primary-foreground">
           <Link href="/" className="flex items-center gap-3 mb-12">

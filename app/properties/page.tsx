@@ -19,7 +19,6 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import PropertyCard from '@/components/PropertyCard';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -40,6 +39,7 @@ import {
 import { useSearchParams } from 'next/navigation';
 import { getAllProperties, getPropertiesCount, PropertyFilterParams } from '@/lib/services/property.service';
 import { getUserFavoriteIds } from '@/lib/services/favorites.service';
+import SearchAutocomplete from '@/components/SearchAutoComplete';
 
 interface Property {
   id?: number;
@@ -121,13 +121,9 @@ const Properties = () => {
   const [loading, setLoading] = useState(true);
   const [gridKey, setGridKey] = useState(0);
 
-  // Server returns only the current page
   const [properties, setProperties] = useState<Property[]>([]);
   const [totalCount, setTotalCount] = useState(0);
 
-  // Filter states (UI values)
-  // Read initial filter values from URL query params
-  // Hero / NotFound pages navigate to /properties?keyword=...&sale_type=...&type=...&price=...&location=...
   const searchParams = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get('keyword') ?? '');
@@ -138,7 +134,8 @@ const Properties = () => {
   const [bedroomsFilter, setBedroomsFilter] = useState('all');
   const [bathroomsFilter, setBathroomsFilter] = useState('all');
   const [landAreaFilter, setLandAreaFilter] = useState('all');
-  const [locationFilter, setLocationFilter] = useState(() => searchParams.get('location') ?? 'all');
+  const [locationFilter, setLocationFilter] = useState(() => searchParams.get('location') ?? 'all'); // regency
+  const [provinceFilter, setProvinceFilter] = useState('all'); // ← BARU: province param
   const [sortBy, setSortBy] = useState('newest');
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -146,11 +143,11 @@ const Properties = () => {
 
   const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
 
-  // Debounce search — wait 400ms after user stops typing
+  // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
-      setCurrentPage(1); // reset page on new search
+      setCurrentPage(1);
     }, 400);
     return () => clearTimeout(timer);
   }, [searchQuery]);
@@ -164,6 +161,7 @@ const Properties = () => {
     bathroomsFilter !== 'all',
     landAreaFilter !== 'all',
     locationFilter !== 'all',
+    provinceFilter !== 'all', // ← ikut dihitung
   ].filter(Boolean).length;
 
   const totalPages = Math.ceil(totalCount / itemsPerPage);
@@ -171,7 +169,7 @@ const Properties = () => {
   const { ref: resultsRef, visible: resultsVisible } = useScrollReveal(0.05);
   const { ref: paginationRef, visible: paginationVisible } = useScrollReveal(0.1);
 
-  // Build server params from current filter state
+  // Build server params
   const buildServerParams = useCallback((): PropertyFilterParams => {
     const params: PropertyFilterParams = {
       page: currentPage,
@@ -181,9 +179,9 @@ const Properties = () => {
     if (debouncedSearch.trim()) params.keyword = debouncedSearch.trim();
     if (statusFilter !== 'all') params.sale_type = statusFilter === 'sale' ? 'jual' : 'sewa';
     if (propertyType !== 'all') params.property_type_id = parseInt(propertyType);
-    if (locationFilter !== 'all') params.regency = locationFilter;
+    if (locationFilter !== 'all') params.regency = locationFilter;   // regency
+    if (provinceFilter !== 'all') params.province = provinceFilter;  // ← BARU: province
 
-    // Price range → min/max
     switch (priceRange) {
       case '0-1m': params.max_price = 1_000_000_000; break;
       case '1-3m': params.min_price = 1_000_000_000; params.max_price = 3_000_000_000; break;
@@ -192,7 +190,6 @@ const Properties = () => {
       case '10m+': params.min_price = 10_000_000_000; break;
     }
 
-    // Land area → min/max
     switch (landAreaFilter) {
       case '0-100': params.max_land_area = 100; break;
       case '100-200': params.min_land_area = 100; params.max_land_area = 200; break;
@@ -200,7 +197,6 @@ const Properties = () => {
       case '500+': params.min_land_area = 500; break;
     }
 
-    // Sort
     switch (sortBy) {
       case 'price-low': params.sort = 'price_asc'; break;
       case 'price-high': params.sort = 'price_desc'; break;
@@ -208,9 +204,8 @@ const Properties = () => {
     }
 
     return params;
-  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, propertyType, locationFilter, priceRange, landAreaFilter, bathroomsFilter, bedroomsFilter, sortBy]);
+  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, propertyType, locationFilter, provinceFilter, priceRange, landAreaFilter, bathroomsFilter, bedroomsFilter, sortBy]);
 
-  // Fetch on every filter/page change
   useEffect(() => {
     fetchProperties();
   }, [buildServerParams]);
@@ -230,7 +225,6 @@ const Properties = () => {
       const params = buildServerParams();
       const res = await getAllProperties(params);
       const propertyData = res.data?.property || res.data || [];
-      // Total count from server response or separate field
       const serverTotal = res.data?.total ?? res.total ?? null;
 
       const mapped: Property[] = propertyData.map((item: any) => ({
@@ -268,11 +262,9 @@ const Properties = () => {
 
       setProperties(mapped);
 
-      // Update total count: prefer server total, fallback to count endpoint
       if (serverTotal !== null) {
         setTotalCount(serverTotal);
       } else {
-        // fetch count with same filters (no page/limit)
         const { page: _p, limit: _l, ...filterOnly } = params;
         const count = await getPropertiesCount(filterOnly);
         setTotalCount(count);
@@ -318,21 +310,21 @@ const Properties = () => {
     return pages;
   };
 
-
-
-
-
   const handleResetFilters = () => {
     setSearchQuery('');
     setDebouncedSearch('');
-    setPropertyType('all'); setStatusFilter('all');
-    setPriceRange('all'); setBedroomsFilter('all');
-    setBathroomsFilter('all'); setLandAreaFilter('all');
-    setLocationFilter('all'); setSortBy('newest');
+    setPropertyType('all');
+    setStatusFilter('all');
+    setPriceRange('all');
+    setBedroomsFilter('all');
+    setBathroomsFilter('all');
+    setLandAreaFilter('all');
+    setLocationFilter('all');
+    setProvinceFilter('all'); // ← reset juga
+    setSortBy('newest');
     setCurrentPage(1);
   };
 
-  // When non-search filters change, reset to page 1
   const handleFilterChange = (setter: (v: string) => void) => (value: string) => {
     setter(value);
     setCurrentPage(1);
@@ -343,7 +335,6 @@ const Properties = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Server returns exactly the current page — no slicing needed
   const currentProperties = properties;
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + properties.length, totalCount);
@@ -352,7 +343,6 @@ const Properties = () => {
   return (
     <>
       <style>{`
-        /* ── Skeleton shimmer ── */
         @keyframes skeleton-shimmer {
           0%   { background-position: -400px 0; }
           100% { background-position:  400px 0; }
@@ -362,15 +352,11 @@ const Properties = () => {
           background-size: 800px 100%;
           animation: skeleton-shimmer 1.4s infinite linear;
         }
-        .skeleton-card {
-          animation: skeleton-fade-in 0.4s ease both;
-        }
+        .skeleton-card { animation: skeleton-fade-in 0.4s ease both; }
         @keyframes skeleton-fade-in {
           from { opacity: 0; transform: translateY(16px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-
-        /* ── Hero header ── */
         @keyframes hero-in {
           from { opacity: 0; transform: translateY(28px); }
           to   { opacity: 1; transform: translateY(0); }
@@ -378,135 +364,56 @@ const Properties = () => {
         .hero-badge  { animation: hero-in 0.6s cubic-bezier(0.22,1,0.36,1) 0.05s both; }
         .hero-title  { animation: hero-in 0.7s cubic-bezier(0.22,1,0.36,1) 0.15s both; }
         .hero-sub    { animation: hero-in 0.7s cubic-bezier(0.22,1,0.36,1) 0.25s both; }
-
-        /* ── Search card ── */
-        .search-card-anim {
-          animation: hero-in 0.7s cubic-bezier(0.22,1,0.36,1) 0.3s both;
-        }
-
-        /* ── Property cards stagger ── */
+        .search-card-anim { animation: hero-in 0.7s cubic-bezier(0.22,1,0.36,1) 0.3s both; }
         @keyframes card-in {
           from { opacity: 0; transform: translateY(32px) scale(0.97); }
-          to   { opacity: 1; transform: translateY(0)    scale(1); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
         }
-        .prop-card-anim {
-          animation: card-in 0.55s cubic-bezier(0.22,1,0.36,1) both;
-        }
-
-        /* ── Filter panel ── */
+        .prop-card-anim { animation: card-in 0.55s cubic-bezier(0.22,1,0.36,1) both; }
         @keyframes filter-slide-in {
           from { opacity: 0; transform: translateY(-12px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        .filter-panel-anim {
-          animation: filter-slide-in 0.35s cubic-bezier(0.22,1,0.36,1) both;
-        }
-
-        /* ── Results header reveal ── */
-        @keyframes fade-up {
-          from { opacity: 0; transform: translateY(16px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
+        .filter-panel-anim { animation: filter-slide-in 0.35s cubic-bezier(0.22,1,0.36,1) both; }
         .results-header-anim {
-          opacity: 0;
-          transform: translateY(16px);
+          opacity: 0; transform: translateY(16px);
           transition: opacity 0.5s ease, transform 0.5s ease;
         }
-        .results-header-anim.visible {
-          opacity: 1;
-          transform: translateY(0);
-        }
-
-        /* ── Pagination ── */
+        .results-header-anim.visible { opacity: 1; transform: translateY(0); }
         .pagination-anim {
-          opacity: 0;
-          transform: translateY(20px);
+          opacity: 0; transform: translateY(20px);
           transition: opacity 0.5s ease 0.1s, transform 0.5s ease 0.1s;
         }
-        .pagination-anim.visible {
-          opacity: 1;
-          transform: translateY(0);
-        }
-
-        /* ── Pagination ── */
+        .pagination-anim.visible { opacity: 1; transform: translateY(0); }
         .page-btn {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          width: 36px;
-          height: 36px;
-          border-radius: 8px;
-          border: 1.5px solid #e5e7eb;
-          background: white;
-          color: hsl(207,23%,28%);
-          font-size: 0.875rem;
-          font-weight: 500;
+          display: inline-flex; align-items: center; justify-content: center;
+          width: 36px; height: 36px; border-radius: 8px;
+          border: 1.5px solid #e5e7eb; background: white;
+          color: hsl(207,23%,28%); font-size: 0.875rem; font-weight: 500;
           cursor: pointer;
           transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
         }
         .page-btn:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-          border-color: var(--color-victoria-red);
-          color: var(--color-victoria-red);
+          transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+          border-color: var(--color-victoria-red); color: var(--color-victoria-red);
         }
         .page-btn.page-btn-active {
-          background: hsl(207,23%,28%);
-          color: white !important;
-          border-color: hsl(207,23%,28%);
-          box-shadow: 0 2px 8px rgba(35,51,66,0.25);
+          background: hsl(207,23%,28%); color: white !important;
+          border-color: hsl(207,23%,28%); box-shadow: 0 2px 8px rgba(35,51,66,0.25);
         }
         .page-btn.page-btn-active:hover {
-          background: hsl(207,23%,22%);
-          border-color: hsl(207,23%,22%);
-          color: white !important;
+          background: hsl(207,23%,22%); border-color: hsl(207,23%,22%); color: white !important;
         }
-        .page-btn:disabled {
-          opacity: 0.35;
-          cursor: not-allowed;
-        }
-
-        /* ── Spinner ── */
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        .spinner {
-          animation: spin 0.8s linear infinite;
-        }
-
-        /* ── View mode toggle ── */
-        .view-btn {
-          transition: all 0.2s ease;
-        }
-        .view-btn:hover {
-          transform: scale(1.1);
-        }
-
-        /* ── Input focus lift ── */
-        .search-input-wrap {
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .search-input-wrap:focus-within {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 16px rgba(179,40,40,0.1);
-        }
-
-        /* ── Quick filter pills hover ── */
-        .filter-pill {
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        }
-        .filter-pill:focus-within {
-          box-shadow: 0 2px 12px rgba(179,40,40,0.12);
-        }
-
-        /* ── Empty state ── */
+        .page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .view-btn { transition: all 0.2s ease; }
+        .view-btn:hover { transform: scale(1.1); }
+        .filter-pill { transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+        .filter-pill:focus-within { box-shadow: 0 2px 12px rgba(179,40,40,0.12); }
         @keyframes empty-in {
           from { opacity: 0; transform: scale(0.95); }
           to   { opacity: 1; transform: scale(1); }
         }
-        .empty-anim {
-          animation: empty-in 0.5s cubic-bezier(0.22,1,0.36,1) both;
-        }
+        .empty-anim { animation: empty-in 0.5s cubic-bezier(0.22,1,0.36,1) both; }
       `}</style>
 
       <div className="min-h-screen bg-gradient-to-b from-white to-gray-50">
@@ -531,7 +438,7 @@ const Properties = () => {
             </div>
 
             {/* ── Search & Filter Card ── */}
-            <Card className="search-card-anim mb-8 border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+            <Card className="relative z-20 search-card-anim mb-8 border-0 shadow-xl bg-white/80 backdrop-blur-sm">
               <CardContent className="p-6 md:p-8">
                 <div className="space-y-6">
 
@@ -551,54 +458,24 @@ const Properties = () => {
                     </TabsList>
                   </Tabs>
 
-                  {/* Search row */}
-                  <div className="flex flex-col lg:flex-row gap-4">
-                    <div className="search-input-wrap flex-1 relative group">
-                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-victoria-red transition-colors" />
-                      <Input
-                        type="text"
-                        placeholder="Cari berdasarkan lokasi, nama properti..."
-                        className="pl-12 h-14 text-base border-gray-200 focus-visible:ring-victoria-red focus-visible:border-victoria-red bg-white shadow-sm"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                  {/* ── Search Autocomplete ── */}
+                  <div style={{ background: 'linear-gradient(135deg, #ffffff 0%, #ffffff 50%, #ffffff 100%)', padding: '20px', borderRadius: '24px' }}>
+                  <SearchAutocomplete
+                    onSearch={(label, filterParams) => {
+                      // Reset semua filter lokasi & keyword dulu
+                      setSearchQuery('');
+                      setDebouncedSearch('');
+                      setLocationFilter('all');
+                      setProvinceFilter('all');
 
-                      />
-                      {searchQuery && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 p-0 hover:bg-gray-100"
-                          onClick={() => setSearchQuery('')}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
+                      // Terapkan filter sesuai tipe suggestion yang dipilih
+                      if (filterParams.keyword) setSearchQuery(filterParams.keyword);
+                      if (filterParams.regency) setLocationFilter(filterParams.regency);
+                      if (filterParams.province) setProvinceFilter(filterParams.province);
 
-                    <Button
-                      size="lg"
-                      className="h-14 px-8 bg-victoria-red hover:bg-victoria-maroon text-white hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200"
-                    >
-                      <Search className="w-4 h-4 mr-2" />
-                      Cari
-                    </Button>
-
-                    <Button
-                      variant={showFilters ? "default" : "outline"}
-                      size="lg"
-                      className={`h-14 px-6 transition-all duration-200 hover:-translate-y-0.5 ${showFilters
-                        ? 'bg-victoria-navy hover:bg-victoria-navy/90'
-                        : 'border-2 border-gray-200 hover:border-victoria-red hover:text-victoria-red'
-                        }`}
-                      onClick={() => setShowFilters(!showFilters)}
-                    >
-                      <SlidersHorizontal className="w-5 h-5 mr-2" />
-                      Filter
-                      {activeFiltersCount > 0 && (
-                        <Badge className="ml-2 bg-victoria-red hover:bg-victoria-red">{activeFiltersCount}</Badge>
-                      )}
-                      <ChevronDown className={`w-4 h-4 ml-2 transition-transform duration-300 ${showFilters ? 'rotate-180' : ''}`} />
-                    </Button>
+                      setCurrentPage(1);
+                    }}
+                  />
                   </div>
 
                   {/* Quick filter pills */}
@@ -620,7 +497,7 @@ const Properties = () => {
                         value: locationFilter, onChange: handleFilterChange(setLocationFilter), width: 'w-[160px]',
                         icon: <MapPin className="w-4 h-4 mr-2 text-victoria-red" />,
                         placeholder: 'Lokasi',
-                        items: [['all', 'Semua Lokasi'], ['jakarta', 'Jakarta'], ['tangerang', 'Tangerang'], ['bogor', 'Bogor'], ['bekasi', 'Bekasi'], ['depok', 'Depok']]
+                        items: [['all', 'Semua Lokasi'], ['jakarta', 'Jakarta'], ['tangerang', 'Tangerang'], ['bogor', 'Bogor'], ['bekasi', 'Bekasi'], ['depok', 'Depok'], ['surabaya', 'Surabaya'], ['bandung', 'Bandung'], ['semarang', 'Semarang'], ['yogyakarta', 'Yogyakarta'], ['malang', 'Malang'], ['bali', 'Bali']]
                       },
                     ].map((f, i) => (
                       <Select key={i} value={f.value} onValueChange={f.onChange}>
@@ -635,6 +512,38 @@ const Properties = () => {
                         </SelectContent>
                       </Select>
                     ))}
+
+                    {/* Tampilkan badge active filter province dari autocomplete */}
+                    {provinceFilter !== 'all' && (
+                      <div className="flex items-center gap-1 h-11 px-3 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-700">
+                        <MapPin className="w-4 h-4" />
+                        <span>{provinceFilter}</span>
+                        <button
+                          onClick={() => { setProvinceFilter('all'); setCurrentPage(1); }}
+                          className="ml-1 hover:text-blue-900"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Filter button */}
+                    <Button
+                      variant={showFilters ? "default" : "outline"}
+                      size="sm"
+                      className={`h-11 px-4 transition-all duration-200 hover:-translate-y-0.5 ${showFilters
+                        ? 'bg-victoria-navy hover:bg-victoria-navy/90'
+                        : 'border-2 border-gray-200 hover:border-victoria-red hover:text-victoria-red'
+                        }`}
+                      onClick={() => setShowFilters(!showFilters)}
+                    >
+                      <SlidersHorizontal className="w-4 h-4 mr-2" />
+                      Filter
+                      {activeFiltersCount > 0 && (
+                        <Badge className="ml-2 bg-victoria-red hover:bg-victoria-red text-xs">{activeFiltersCount}</Badge>
+                      )}
+                      <ChevronDown className={`w-4 h-4 ml-2 transition-transform duration-300 ${showFilters ? 'rotate-180' : ''}`} />
+                    </Button>
 
                     {activeFiltersCount > 0 && (
                       <Button
@@ -681,7 +590,7 @@ const Properties = () => {
                             <label className="text-sm font-medium text-gray-700">&nbsp;</label>
                             <Button
                               className="w-full bg-victoria-red hover:bg-victoria-red/90 text-white h-10 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200"
-                              onClick={() => { }} // filter is realtime, button is decorative
+                              onClick={() => { }}
                             >
                               Terapkan Filter
                             </Button>
@@ -801,10 +710,7 @@ const Properties = () => {
 
                 {/* ── Pagination ── */}
                 {totalPages > 1 && (
-                  <div
-                    ref={paginationRef}
-                    className={`pagination-anim ${paginationVisible ? 'visible' : ''}`}
-                  >
+                  <div>
                     <div className="flex justify-center items-center mt-12 gap-2">
                       <button
                         onClick={() => handlePageChange(currentPage - 1)}

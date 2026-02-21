@@ -68,7 +68,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <Link
           href="/"
-          className="lg:hidden flex items-center gap-2 text-muted-foreground hover:text-victoria-navy mb-8"
+          className="lg:hidden flex items-center gap-2 text-muted-foreground hover:text-victoria-navy mb-12"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Kembali ke Beranda</span>
@@ -162,7 +162,7 @@ export default function LoginPage() {
             </Button>
 
           </div>
-          
+
 
 
           <Button className="w-full h-12 bg-victoria-red text-white">

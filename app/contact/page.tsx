@@ -400,9 +400,16 @@ const Contact = () => {
                           style={{ transition: 'transform 0.2s ease' }}
                           onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; }}
                           onMouseLeave={(e) => { e.currentTarget.style.transform = ''; }}
+                          asChild
                         >
-                          <MessageCircle className="w-5 h-5 mr-2 group-hover:animate-bounce" />
-                          Chat WhatsApp
+                          <a
+                            href="https://api.whatsapp.com/send/?phone=6281280269318"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <MessageCircle className="w-5 h-5 mr-2 group-hover:animate-bounce" />
+                            Chat WhatsApp
+                          </a>
                         </Button>
                       </div>
                     </FormField>

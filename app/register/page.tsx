@@ -15,6 +15,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import AuthLayout from "@/components/auth/AuthLayout";
 import { useRouter } from "next/navigation";
 import { register } from "@/lib/services/auth.service";
@@ -29,6 +37,8 @@ export default function RegisterPage() {
   const [phone_number, setPhone_number] = useState("")
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsDialogOpen, setTermsDialogOpen] = useState(false);
   const router = useRouter();
 
   function formatErrorMessage(message?: string) {
@@ -199,18 +209,23 @@ export default function RegisterPage() {
           </div>
 
           <div className="flex items-start gap-2">
-            <Checkbox id="terms" className="mt-1" />
+            <Checkbox
+              id="terms"
+              className="mt-1"
+              checked={termsAccepted}
+              onCheckedChange={(checked) => setTermsAccepted(checked === true)}
+            />
             <Label
               htmlFor="terms"
               className="text-sm font-normal leading-relaxed"
             >
               Saya menyetujui{" "}
-              <button type="button" className="text-victoria-red">
-                Syarat & Ketentuan
-              </button>{" "}
-              dan{" "}
-              <button type="button" className="text-victoria-red">
-                Kebijakan Privasi
+              <button
+                type="button"
+                className="text-victoria-red hover:underline"
+                onClick={() => setTermsDialogOpen(true)}
+              >
+                Syarat & Ketentuan dan Kebijakan Privasi
               </button>
             </Label>
           </div>
@@ -225,7 +240,7 @@ export default function RegisterPage() {
 
           <Button
             type="submit"
-            disabled={loading}
+            disabled={loading || !termsAccepted}
             className="w-full h-12 bg-victoria-red text-white"
           >
             {loading ? "Memproses..." : "Daftar Sekarang"}
@@ -243,6 +258,98 @@ export default function RegisterPage() {
 
         </form>
       </div>
+
+      {/* Modal Syarat & Ketentuan */}
+      <Dialog open={termsDialogOpen} onOpenChange={setTermsDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-victoria-navy">
+              Syarat & Ketentuan dan Kebijakan Privasi
+            </DialogTitle>
+            <DialogDescription>
+              Harap baca dengan seksama sebelum melanjutkan registrasi
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="h-[50vh] pr-4">
+            <div className="space-y-4 text-sm text-muted-foreground">
+              <p>
+                Selamat datang di platform digital Victoria Property. Dengan melakukan registrasi atau menggunakan layanan kami, Anda dianggap telah membaca, memahami, dan menyetujui seluruh syarat dan ketentuan di bawah ini.
+              </p>
+
+              <div>
+                <h3 className="font-semibold text-foreground mb-2">1. Definisi dan Layanan</h3>
+                <p>
+                  Victoria Property adalah platform agensi properti yang menyediakan layanan informasi properti di seluruh Indonesia. Website ini memfasilitasi interaksi antara:
+                </p>
+                <ul className="list-disc pl-5 mt-2 space-y-1">
+                  <li><strong>Calon Pembeli:</strong> Pengguna yang melakukan registrasi untuk melihat detail properti dan melakukan komunikasi dengan agen.</li>
+                  <li><strong>Agen Internal:</strong> Karyawan atau mitra resmi Victoria Property yang diberikan hak untuk mengelola konten properti.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-foreground mb-2">2. Ketentuan Akun dan Registrasi</h3>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Pengguna wajib memberikan informasi yang akurat dan benar saat melakukan registrasi.</li>
+                  <li>Meskipun tidak ada batasan usia untuk mengakses website, setiap tindakan hukum terkait transaksi properti tetap tunduk pada peraturan perundang-undangan yang berlaku di Indonesia mengenai usia kedewasaan atau kapasitas hukum.</li>
+                  <li>Pengguna bertanggung jawab penuh atas kerahasiaan kata sandi dan aktivitas yang dilakukan melalui akun pribadi.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-foreground mb-2">3. Peran dan Fungsi Pengguna</h3>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li><strong>Bagi Calon Pembeli:</strong> Registrasi memungkinkan Anda melihat informasi detail properti. Fitur Call to Action (Tombol Aksi) akan mengarahkan Anda langsung ke layanan pesan instan (chat) dengan agen yang bersangkutan.</li>
+                  <li><strong>Bagi Agen Internal:</strong> Agen memiliki akses untuk mengunggah informasi properti (Listing), memantau jumlah statistik pengunjung pada properti tersebut, serta menerima pesan langsung dari calon pembeli.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-foreground mb-2">4. Tanggung Jawab Konten Properti</h3>
+                <p>
+                  Setiap data, foto, harga, dan deskripsi properti yang diunggah sepenuhnya merupakan tanggung jawab dari Agen Internal yang mengunggah properti tersebut. Victoria Property selaku penyedia platform tidak bertanggung jawab atas ketidaksesuaian data atau kerugian yang muncul akibat informasi yang diberikan oleh masing-masing agen. Agen wajib memastikan bahwa properti yang dipasarkan adalah sah dan tidak melanggar hukum.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-foreground mb-2">5. Perlindungan Data Pribadi</h3>
+                <p>Sesuai dengan Undang-Undang Nomor 27 Tahun 2022 tentang Perlindungan Data Pribadi (UU PDP), Victoria Property berkomitmen untuk:</p>
+                <ul className="list-disc pl-5 mt-2 space-y-1">
+                  <li>Melindungi data pribadi yang Anda berikan saat registrasi.</li>
+                  <li>Menggunakan data tersebut hanya untuk kepentingan layanan internal dan komunikasi pemasaran terkait properti.</li>
+                  <li>Tidak memberikan data pribadi kepada pihak ketiga tanpa persetujuan Anda, kecuali diwajibkan oleh hukum.</li>
+                  <li>Memberikan hak kepada pengguna untuk memperbarui atau meminta penghapusan data pribadi mereka dari sistem kami.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-foreground mb-2">6. Batasan Tanggung Jawab</h3>
+                <p>
+                  Victoria Property bertindak sebagai fasilitator komunikasi. Kami tidak bertanggung jawab atas isi percakapan atau kesepakatan yang terjadi di luar sistem kami. Seluruh keputusan transaksi properti sepenuhnya berada di tangan calon pembeli dan agen terkait.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-foreground mb-2">7. Perubahan Syarat dan Ketentuan</h3>
+                <p>
+                  Victoria Property berhak untuk mengubah, menambah, atau menghapus bagian dari syarat dan ketentuan ini sewaktu-waktu tanpa pemberitahuan terlebih dahulu. Anda disarankan untuk memeriksa halaman ini secara berkala.
+                </p>
+              </div>
+            </div>
+          </ScrollArea>
+          <div className="flex justify-end pt-4 border-t">
+            <Button
+              onClick={() => {
+                setTermsAccepted(true);
+                setTermsDialogOpen(false);
+              }}
+              className="bg-victoria-red text-white"
+            >
+              Saya Setuju
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AuthLayout>
   );
 }

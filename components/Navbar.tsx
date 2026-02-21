@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Image from 'next/image'
 import { useEffect, useRef } from "react";
-import { User } from "lucide-react";
+import { User, LayoutDashboard, LogOut } from "lucide-react";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -145,19 +145,19 @@ const Navbar = () => {
               ) : (
                 <div className="flex items-center gap-4">
                   {/* Heart icon for favorites */}
-                    <Link
-                      href="/favorites"
-                      className="flex items-center gap-2 p-2 rounded-full hover:text-victoria-red transition-colors"
-                      aria-label="Favorites"
-                    >
-                      <span>Favorites</span>
-                      <Heart
-                        className={`w-5 h-5 text-victoria-red transition-colors ${pathname === "/favorites"
-                            ? "fill-victoria-red"
-                            : "hover:fill-victoria-red"
-                          }`}
-                      />
-                    </Link>
+                  <Link
+                    href="/favorites"
+                    className="flex items-center gap-2 p-2 rounded-full hover:text-victoria-red transition-colors"
+                    aria-label="Favorites"
+                  >
+                    <span>Favorites</span>
+                    <Heart
+                      className={`w-5 h-5 text-victoria-red transition-colors ${pathname === "/favorites"
+                        ? "fill-victoria-red"
+                        : "hover:fill-victoria-red"
+                        }`}
+                    />
+                  </Link>
 
                   <div className="relative" ref={dropdownRef}>
                     <button
@@ -170,28 +170,33 @@ const Navbar = () => {
 
                     {showDropdown && (
                       <div className="absolute right-0 mt-3 w-48 bg-white shadow-lg rounded-md border border-border z-50">
+
                         <Link
                           href="/profile"
-                          className="block px-4 py-2 hover:bg-muted"
+                          className="flex items-center gap-2 px-4 py-2 hover:bg-muted"
                         >
+                          <User className="w-4 h-4" />
                           Profile
                         </Link>
 
                         {user.role === 1 && (
                           <Link
                             href="/admin/dashboard"
-                            className="block px-4 py-2 hover:bg-muted"
+                            className="flex items-center gap-2 px-4 py-2 hover:bg-muted"
                           >
+                            <LayoutDashboard className="w-4 h-4" />
                             Admin Panel
                           </Link>
                         )}
 
                         <button
                           onClick={handleLogout}
-                          className="w-full text-left px-4 py-2 hover:bg-muted text-red-500"
+                          className="flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-muted text-red-500"
                         >
+                          <LogOut className="w-4 h-4" />
                           Logout
                         </button>
+
                       </div>
                     )}
                   </div>
@@ -251,7 +256,7 @@ const Navbar = () => {
                       </Link>
 
                       {user.role === 1 && (
-                        <Link href="/admin" onClick={() => setIsOpen(false)}>
+                        <Link href="/admin/dashboard" onClick={() => setIsOpen(false)}>
                           <Button variant="outline" className="w-full">
                             Admin Panel
                           </Button>

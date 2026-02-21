@@ -2,13 +2,12 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-    Search, SlidersHorizontal, Grid3X3, List, ChevronDown,
+    SlidersHorizontal, Grid3X3, List, ChevronDown,
     PlusCircle, Trash2, X, Filter, TrendingUp, Building2,
     Sparkles, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import PropertyCard from "@/components/properties/PropertyCard";
@@ -17,9 +16,9 @@ import DeletePropertyModal from "@/components/properties/DeletePropertyModal";
 import { Property } from "@/lib/types/property";
 import { createProperty, updateProperty, deleteProperties } from "@/lib/services/dashboard.service";
 import { getAllProperties, getPropertiesCount, PropertyFilterParams } from "@/lib/services/property.service";
+import SearchAutocomplete, { SuggestionItem } from "@/components/SearchAutoComplete";
 
 export default function PropertiesPage() {
-    // Server returns only the current page
     const [properties, setProperties] = useState<Property[]>([]);
     const [totalCount, setTotalCount] = useState(0);
     const [statsCount, setStatsCount] = useState({ total: 0, forSale: 0 });
@@ -30,9 +29,11 @@ export default function PropertiesPage() {
     const [formMode, setFormMode] = useState<"create" | "edit">("create");
     const [loading, setLoading] = useState(true);
 
-    // Filter states
+    // ── Filter states ──
     const [searchQuery, setSearchQuery] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
+    const [locationFilter, setLocationFilter] = useState("all");   // regency
+    const [provinceFilter, setProvinceFilter] = useState("all");   // province ← BARU
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [showFilters, setShowFilters] = useState(false);
     const [propertyType, setPropertyType] = useState("all");
@@ -41,13 +42,11 @@ export default function PropertiesPage() {
     const [bedroomsFilter, setBedroomsFilter] = useState("all");
     const [bathroomsFilter, setBathroomsFilter] = useState("all");
     const [landAreaFilter, setLandAreaFilter] = useState("all");
-    const [locationFilter, setLocationFilter] = useState("all");
     const [sortBy, setSortBy] = useState("newest");
-
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage] = useState(12);
 
-    // Debounce search 400ms
+    // Debounce search 400ms (dipakai saat user ketik manual di autocomplete)
     useEffect(() => {
         const timer = setTimeout(() => {
             setDebouncedSearch(searchQuery);
@@ -65,6 +64,7 @@ export default function PropertiesPage() {
         bathroomsFilter !== "all",
         landAreaFilter !== "all",
         locationFilter !== "all",
+        provinceFilter !== "all",
     ].filter(Boolean).length;
 
     const totalPages = Math.ceil(totalCount / itemsPerPage);
@@ -76,6 +76,7 @@ export default function PropertiesPage() {
         if (statusFilter !== "all") params.sale_type = statusFilter === "sale" ? "jual" : "sewa";
         if (propertyType !== "all") params.property_type_id = parseInt(propertyType);
         if (locationFilter !== "all") params.regency = locationFilter;
+        if (provinceFilter !== "all") params.province = provinceFilter;
 
         switch (priceRange) {
             case "0-1m": params.max_price = 1_000_000_000; break;
@@ -97,12 +98,9 @@ export default function PropertiesPage() {
         }
 
         return params;
-    }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, propertyType, locationFilter, priceRange, landAreaFilter, bathroomsFilter, bedroomsFilter, sortBy]);
+    }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, propertyType, locationFilter, provinceFilter, priceRange, landAreaFilter, bathroomsFilter, bedroomsFilter, sortBy]);
 
-    // Fetch page on every filter/page change
     useEffect(() => { fetchProperties(); }, [buildServerParams]);
-
-    // Fetch unfiltered stats once on mount
     useEffect(() => { fetchStats(); }, []);
 
     async function fetchStats() {
@@ -122,9 +120,7 @@ export default function PropertiesPage() {
             const res = await getAllProperties(params);
             const propertyData = res.data?.property || res.data || [];
             const serverTotal = res.data?.total ?? res.total ?? null;
-
             setProperties(mapProperties(propertyData));
-
             if (serverTotal !== null) {
                 setTotalCount(serverTotal);
             } else {
@@ -140,37 +136,22 @@ export default function PropertiesPage() {
 
     function mapProperties(data: any[]): Property[] {
         return (data || []).map((item: any) => ({
-            id: item.id,
-            title: item.title,
-            description: item.description,
-            price: item.price,
-            status: item.status,
-            province: item.province,
-            regency: item.regency,
-            district: item.district,
-            address: item.address,
-            building_area: item.building_area,
-            land_area: item.land_area,
-            electricity: item.electricity,
-            water_source: item.water_source,
-            bedrooms: item.bedrooms,
-            bathrooms: item.bathrooms,
-            floors: item.floors,
-            garage: item.garage,
-            carport: item.carport,
-            certificate: item.certificate,
-            year_constructed: item.year_constructed,
-            sale_type: item.sale_type,
+            id: item.id, title: item.title, description: item.description,
+            price: item.price, status: item.status, province: item.province,
+            regency: item.regency, district: item.district, address: item.address,
+            building_area: item.building_area, land_area: item.land_area,
+            electricity: item.electricity, water_source: item.water_source,
+            bedrooms: item.bedrooms, bathrooms: item.bathrooms, floors: item.floors,
+            garage: item.garage, carport: item.carport, certificate: item.certificate,
+            year_constructed: item.year_constructed, sale_type: item.sale_type,
             created_at: item.created_at,
             cover_image_url: item.cover_image_url ? `http://localhost:8080${item.cover_image_url}` : null,
-            property_type_id: item.property_type_id,
-            user_id: item.user_id,
+            property_type_id: item.property_type_id, user_id: item.user_id,
         }));
     }
 
     const handleFilterChange = (setter: (v: string) => void) => (value: string) => {
-        setter(value);
-        setCurrentPage(1);
+        setter(value); setCurrentPage(1);
     };
 
     const handleResetFilters = () => {
@@ -178,7 +159,26 @@ export default function PropertiesPage() {
         setPropertyType("all"); setStatusFilter("all");
         setPriceRange("all"); setBedroomsFilter("all");
         setBathroomsFilter("all"); setLandAreaFilter("all");
-        setLocationFilter("all"); setSortBy("newest");
+        setLocationFilter("all"); setProvinceFilter("all");
+        setSortBy("newest"); setCurrentPage(1);
+    };
+
+    // ── Handler autocomplete ──
+    const handleAutocompleteSearch = (label: string, filterParams: SuggestionItem['filterParams']) => {
+        // Reset semua filter lokasi & keyword dulu
+        setSearchQuery('');
+        setDebouncedSearch('');
+        setLocationFilter('all');
+        setProvinceFilter('all');
+
+        // Terapkan sesuai tipe suggestion
+        if (filterParams.keyword) {
+            setSearchQuery(filterParams.keyword);
+            setDebouncedSearch(filterParams.keyword); // langsung tanpa debounce
+        }
+        if (filterParams.regency) setLocationFilter(filterParams.regency);
+        if (filterParams.province) setProvinceFilter(filterParams.province);
+
         setCurrentPage(1);
     };
 
@@ -268,7 +268,7 @@ export default function PropertiesPage() {
                     </div>
                 </div>
 
-                {/* Stats Cards — uses unfiltered counts so they don't change on filter */}
+                {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <Card className="border-l-4 border-l-[#5B0F1A] bg-gradient-to-br from-white to-gray-50">
                         <CardContent className="p-4 flex items-center justify-between">
@@ -297,33 +297,23 @@ export default function PropertiesPage() {
                 </div>
             </div>
 
-            {/* ── Search & Filter ── */}
+            {/* ── Search & Filter Card ── */}
             <Card className="shadow-md border-0 bg-gradient-to-br from-white to-gray-50/50">
                 <CardContent className="p-6 space-y-4">
-                    <div className="flex flex-col lg:flex-row gap-4">
-                        {/* Search — debounced 400ms, spinner inside */}
-                        <div className="flex-1 relative group">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-[#5B0F1A] transition-colors" />
-                            <Input
-                                type="text"
-                                placeholder="Search by title, location, or address..."
-                                className="pl-12 h-12 border-gray-200 focus-visible:ring-[#5B0F1A] focus-visible:border-[#5B0F1A] bg-white"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+
+                    {/* ── Search Autocomplete row ── */}
+                    <div className="flex flex-col lg:flex-row gap-4 items-start">
+                        {/* Autocomplete — menggantikan Input search lama */}
+                        <div className="flex-1 min-w-0">
+                            <SearchAutocomplete
+                                placeholder="Search by title, city, province, or address..."
+                                onSearch={handleAutocompleteSearch}
                             />
-                            {loading && searchQuery && (
-                                <div className="absolute right-10 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin rounded-full border-2 border-[#5B0F1A] border-t-transparent" />
-                            )}
-                            {searchQuery && (
-                                <Button variant="ghost" size="sm" className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0" onClick={() => setSearchQuery("")}>
-                                    <X className="h-4 w-4" />
-                                </Button>
-                            )}
                         </div>
 
-                        <div className="flex flex-wrap gap-3">
+                        <div className="flex flex-wrap gap-3 shrink-0">
                             <Select value={propertyType} onValueChange={handleFilterChange(setPropertyType)}>
-                                <SelectTrigger className="w-[160px] h-12 border-gray-200 bg-white"><SelectValue placeholder="Property Type" /></SelectTrigger>
+                                <SelectTrigger className="w-[100px] h-14 border-gray-200 bg-white"><SelectValue placeholder="Property Type" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Types</SelectItem>
                                     <SelectItem value="1">House</SelectItem>
@@ -334,7 +324,7 @@ export default function PropertiesPage() {
                             </Select>
 
                             <Select value={statusFilter} onValueChange={handleFilterChange(setStatusFilter)}>
-                                <SelectTrigger className="w-[140px] h-12 border-gray-200 bg-white"><SelectValue placeholder="Status" /></SelectTrigger>
+                                <SelectTrigger className="w-[120px] h-14 border-gray-200 bg-white"><SelectValue placeholder="Status" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Status</SelectItem>
                                     <SelectItem value="sale">For Sale</SelectItem>
@@ -343,7 +333,7 @@ export default function PropertiesPage() {
                             </Select>
 
                             <Select value={priceRange} onValueChange={handleFilterChange(setPriceRange)}>
-                                <SelectTrigger className="w-[160px] h-12 border-gray-200 bg-white"><SelectValue placeholder="Price Range" /></SelectTrigger>
+                                <SelectTrigger className="w-[120px] h-14 border-gray-200 bg-white"><SelectValue placeholder="Price Range" /></SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">All Prices</SelectItem>
                                     <SelectItem value="0-1m">Under 1M</SelectItem>
@@ -356,7 +346,7 @@ export default function PropertiesPage() {
 
                             <Button
                                 variant={showFilters ? "default" : "outline"}
-                                className={`h-12 ${showFilters ? "bg-[#5B0F1A] hover:bg-[#7A1424]" : "border-gray-200 hover:bg-gray-50"}`}
+                                className={`h-14 ${showFilters ? "bg-[#5B0F1A] hover:bg-[#7A1424]" : "border-gray-200 hover:bg-gray-50"}`}
                                 onClick={() => setShowFilters(!showFilters)}
                             >
                                 <SlidersHorizontal className="h-4 w-4 mr-2" />
@@ -366,13 +356,38 @@ export default function PropertiesPage() {
                             </Button>
 
                             {activeFiltersCount > 0 && (
-                                <Button variant="ghost" className="h-12 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={handleResetFilters}>
+                                <Button variant="ghost" className="h-14 text-red-500 hover:text-red-700 hover:bg-red-50" onClick={handleResetFilters}>
                                     <X className="h-4 w-4 mr-2" /> Reset ({activeFiltersCount})
                                 </Button>
                             )}
                         </div>
                     </div>
 
+                    {/* Active location filter badges */}
+                    {(locationFilter !== 'all' || provinceFilter !== 'all') && (
+                        <div className="flex flex-wrap gap-2">
+                            {locationFilter !== 'all' && (
+                                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#5B0F1A]/8 border border-[#5B0F1A]/20 rounded-full text-sm text-[#5B0F1A]">
+                                    <span className="text-xs">📍</span>
+                                    <span className="font-medium">{locationFilter}</span>
+                                    <button onClick={() => { setLocationFilter('all'); setCurrentPage(1); }} className="ml-1 hover:text-[#7A1424]">
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            )}
+                            {provinceFilter !== 'all' && (
+                                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-full text-sm text-blue-700">
+                                    <span className="text-xs">🌐</span>
+                                    <span className="font-medium">{provinceFilter}</span>
+                                    <button onClick={() => { setProvinceFilter('all'); setCurrentPage(1); }} className="ml-1 hover:text-blue-900">
+                                        <X className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Advanced filter panel */}
                     {showFilters && (
                         <div className="pt-4 border-t border-gray-200 animate-in slide-in-from-top-2 duration-300">
                             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
@@ -380,7 +395,6 @@ export default function PropertiesPage() {
                                     { value: bedroomsFilter, setter: setBedroomsFilter, placeholder: "Bedrooms", items: [["all", "Any Beds"], ["1", "1 Bedroom"], ["2", "2 Bedrooms"], ["3", "3 Bedrooms"], ["4", "4+ Bedrooms"]] },
                                     { value: bathroomsFilter, setter: setBathroomsFilter, placeholder: "Bathrooms", items: [["all", "Any Baths"], ["1", "1 Bathroom"], ["2", "2 Bathrooms"], ["3", "3+ Bathrooms"]] },
                                     { value: landAreaFilter, setter: setLandAreaFilter, placeholder: "Land Area", items: [["all", "Any Size"], ["0-100", "0-100 m²"], ["100-200", "100-200 m²"], ["200-500", "200-500 m²"], ["500+", "500+ m²"]] },
-                                    { value: locationFilter, setter: setLocationFilter, placeholder: "Location", items: [["all", "All Locations"], ["jakarta", "Jakarta"], ["tangerang", "Tangerang"], ["bogor", "Bogor"], ["bekasi", "Bekasi"], ["depok", "Depok"]] },
                                     { value: sortBy, setter: setSortBy, placeholder: "Sort by", items: [["newest", "Newest First"], ["price-low", "Price: Low to High"], ["price-high", "Price: High to Low"]] },
                                 ].map(({ value, setter, placeholder, items }) => (
                                     <Select key={placeholder} value={value} onValueChange={handleFilterChange(setter)}>
@@ -403,7 +417,8 @@ export default function PropertiesPage() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex items-center gap-3">
                     <p className="text-sm text-muted-foreground">
-                        Showing <span className="font-bold text-foreground">{totalCount === 0 ? 0 : startIndex + 1}–{endIndex}</span> of <span className="font-bold text-foreground">{totalCount}</span> properties
+                        Showing <span className="font-bold text-foreground">{totalCount === 0 ? 0 : startIndex + 1}–{endIndex}</span> of{" "}
+                        <span className="font-bold text-foreground">{totalCount}</span> properties
                     </p>
                     {activeFiltersCount > 0 && <Badge variant="secondary" className="bg-[#5B0F1A]/10 text-[#5B0F1A]">Filtered</Badge>}
                     {loading && properties.length > 0 && (
@@ -455,8 +470,7 @@ export default function PropertiesPage() {
                 </Card>
             ) : (
                 <>
-                    <div className={`grid gap-6 transition-opacity duration-200 ${loading ? "opacity-50 pointer-events-none" : "opacity-100"} ${viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-4" : "grid-cols-1"
-                        }`}>
+                    <div className={`grid gap-6 transition-opacity duration-200 ${loading ? "opacity-50 pointer-events-none" : "opacity-100"} ${viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-4" : "grid-cols-1"}`}>
                         {properties.map((property) => (
                             <PropertyCard
                                 key={property.id}

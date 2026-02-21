@@ -126,7 +126,7 @@ export default async function PropertyDetail({ params }: Props) {
             <main className="pt-28 pb-20">
                 {/* Breadcrumb */}
                 <div className="container-victoria mb-6">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2 mt-8 text-sm text-muted-foreground">
                         <a href="/" className="hover:text-victoria-red transition-colors">
                             Beranda
                         </a>
@@ -326,17 +326,25 @@ export default async function PropertyDetail({ params }: Props) {
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent className="p-6 space-y-3">
-                                        <Button className="w-full h-11 bg-victoria-red hover:bg-victoria-maroon">
-                                            <Phone className="w-4 h-4 mr-2" />
-                                            Telepon Sekarang
+                                        <Button
+                                            variant="outline"
+                                            className="w-full h-11 border-2 border-victoria-red text-victoria-red hover:bg-victoria-red hover:text-white"
+                                            asChild
+                                        >
+                                            <a
+                                                href={`https://api.whatsapp.com/send/?phone=6281280269318&text=Halo, saya tertarik dengan properti: ${property.title}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                <MessageCircle className="w-4 h-4 mr-2" />
+                                                WhatsApp
+                                            </a>
                                         </Button>
-                                        <Button variant="outline" className="w-full h-11 border-2 border-victoria-red text-victoria-red hover:bg-victoria-red hover:text-white">
-                                            <MessageCircle className="w-4 h-4 mr-2" />
-                                            WhatsApp
-                                        </Button>
-                                        <Button variant="outline" className="w-full h-11">
-                                            <Mail className="w-4 h-4 mr-2" />
-                                            Email
+                                        <Button variant="outline" className="w-full h-11" asChild>
+                                            <a href="/contact">
+                                                <Mail className="w-4 h-4 mr-2" />
+                                                Email
+                                            </a>
                                         </Button>
 
                                         {/* ✅ FavoriteButton menggantikan tombol statis */}
